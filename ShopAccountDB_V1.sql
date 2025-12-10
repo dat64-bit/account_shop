@@ -121,14 +121,41 @@ CREATE TABLE Chat (
 GO
 
 -- 10. Tạo bảng Blog
+-- general information 
 CREATE TABLE Blog (
     BlogID INT IDENTITY(1,1) PRIMARY KEY,
-    Title NVARCHAR(255) NOT NULL,
-    Content NVARCHAR(MAX) NOT NULL,
-    ThumbnailURL VARCHAR(MAX),
-    AuthorID INT,
+    Title NVARCHAR(255) NOT NULL, -- Tên bài viết
+    Summary NVARCHAR(500), -- Đoạn mô tả ngắn (Sapo) hiển thị dưới tiêu đề
+    ThumbnailURL VARCHAR(MAX), -- Ảnh đại diện bên ngoài danh sách
+    ViewCount INT DEFAULT 0, -- Đếm lượt xem
+    AuthorID INT, 
     CreatedAt DATETIME DEFAULT GETDATE(),
     UpdatedAt DATETIME,
+    IsActive BIT DEFAULT 1, -- 1: Đang hiện, 0: Ẩn
     FOREIGN KEY (AuthorID) REFERENCES Account(AccountID)
+);
+GO
+
+-- detail informations 
+-- Bảng này lưu tất cả: đoạn văn, mục lục, bước hướng dẫn, ảnh, video...
+CREATE TABLE BlogContent (
+    ContentID INT IDENTITY(1,1) PRIMARY KEY,
+    BlogID INT NOT NULL,
+    
+    SortOrder INT NOT NULL, -- Thứ tự hiển thị (1, 2, 3...)
+    
+    -- Loại nội dung:
+    -- 'HEADER': Tiêu đề mục lớn (VD: "1. Giới thiệu...") -> Dùng để tạo mục lục
+    -- 'TEXT': Đoạn văn bản bình thường
+    -- 'IMAGE': Ảnh minh họa nằm riêng
+    -- 'VIDEO': Video nằm riêng
+    -- 'STEP': Dùng cho bài hướng dẫn (Có Số bước + Tiêu đề + Ảnh/Video + Nội dung)
+    ContentType VARCHAR(20) DEFAULT 'TEXT', 
+    
+    HeadingText NVARCHAR(255), -- Tiêu đề con (VD: "Bước 1:...", "2. Cấu hình...")
+    BodyText NVARCHAR(MAX),    -- Nội dung chữ chi tiết
+    MediaURL VARCHAR(MAX),     -- Link ảnh hoặc video
+    
+    FOREIGN KEY (BlogID) REFERENCES Blog(BlogID)
 );
 GO
