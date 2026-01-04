@@ -1,7 +1,7 @@
 ﻿-- 1. Tạo Database
 CREATE DATABASE ShopAccountDB_V1;
 GO
-USE ShopAccountDB_V3;
+USE ShopAccountDB_V1;
 GO
 
 -- 2. Tạo bảng Status (Trạng thái chung cho toàn hệ thống)
@@ -26,14 +26,14 @@ GO
 -- 4. Tạo bảng Account (Người dùng & Admin)
 CREATE TABLE Account (
     AccountID INT IDENTITY(1,1) PRIMARY KEY,
-    Username VARCHAR(50) UNIQUE NOT NULL,
+    Username CHAR(50) UNIQUE NOT NULL,
     PasswordHash VARCHAR(255) NOT NULL,
     FullName NVARCHAR(100),
     Email VARCHAR(100) UNIQUE,
-    PhoneNumber VARCHAR(20),
-    Balance DECIMAL(18, 2) DEFAULT 0, -- Số dư ví
+    PhoneNumber CHAR(10),
+    Balance DECIMAL(18, 0) DEFAULT 0, -- Số dư ví
     Token VARCHAR(MAX),
-    Role NVARCHAR(20) DEFAULT 'Customer', 
+    Role VARCHAR(20) DEFAULT 'Customer', 
     CreatedAt DATETIME DEFAULT GETDATE(),
     StatusID INT, 
     FOREIGN KEY (StatusID) REFERENCES [Status](StatusID)
