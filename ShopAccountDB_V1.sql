@@ -33,10 +33,18 @@ CREATE TABLE Account (
     PhoneNumber CHAR(10),
     Balance DECIMAL(18, 0) DEFAULT 0, -- Số dư ví
     Token VARCHAR(MAX),
-    Role VARCHAR(20) DEFAULT 'Customer', 
+    RoleID INT NOT NULL, 
     CreatedAt DATETIME DEFAULT GETDATE(),
     StatusID INT, 
     FOREIGN KEY (StatusID) REFERENCES [Status](StatusID)
+    FOREIGN KEY (RoleID) REFERENCES [Role](RoleID)
+);
+GO
+
+--role table 
+CREATE TABLE [Role] (
+    RoleID INT IDENTITY(1,1) PRIMARY KEY,
+    RoleName NVARCHAR(50) NOT NULL -- Admin, Customer, 
 );
 GO
 
@@ -45,52 +53,82 @@ CREATE TABLE Product (
     ProductID INT IDENTITY(1,1) PRIMARY KEY,
     CategoryID INT, -- BỔ SUNG: Khóa ngoại liên kết danh mục
     ProductName NVARCHAR(255) NOT NULL,
-    Description NVARCHAR(MAX),
-    Price DECIMAL(18, 2) DEFAULT 0,
-    StockQuantity INT DEFAULT 0, -- Quản lý còn hàng/hết hàng
-    
+    [Description] NVARCHAR(MAX),
+    ImageURL VARCHAR(MAX),
     -- Các cờ logic sản phẩm
     IsContactSeller BIT DEFAULT 0, -- Liên hệ người bán
     IsInputEmailRequired BIT DEFAULT 0, -- Yêu cầu nhập thông tin bổ sung
-    
-    AccountData NVARCHAR(MAX), -- Data tài khoản (user|pass)
-    ImageURL VARCHAR(MAX),
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    IsActive BIT DEFAULT 1,
-    
+    StatusID int NOT NULL,
+    FOREIGN KEY (StatusID) REFERENCES [Status](StatusID),
     FOREIGN KEY (CategoryID) REFERENCES Category(CategoryID) -- Liên kết
 );
 GO
-
--- 6. Tạo bảng Orders (Đơn hàng)
-CREATE TABLE Orders (
-    OrderID INT IDENTITY(1,1) PRIMARY KEY,
-    AccountID INT NOT NULL,
-    OrderDate DATETIME DEFAULT GETDATE(),
-    TotalAmount DECIMAL(18, 2) NOT NULL,
-    Note NVARCHAR(500),
-    StatusID INT,
-    FOREIGN KEY (AccountID) REFERENCES Account(AccountID),
-    FOREIGN KEY (StatusID) REFERENCES [Status](StatusID)
+CREATE TABLE subscription(
+    plan_id INT IDENTITY(1,1) PRIMARY KEY,
+    plan_name NVARCHAR(100) NOT NULL, -- Ví dụ: "1 Tháng", "6 Tháng", "Vĩnh Viễn"
+    duration_days INT NOT NULL, -- Số ngày sử dụng (ví dụ: 30, 180, 365)
+    is_active bit default 1, 
 );
 GO
 
--- 7. Tạo bảng OrderDetail (Chi tiết đơn hàng)
-CREATE TABLE OrderDetail (
-    OrderDetailID INT IDENTITY(1,1) PRIMARY KEY,
-    OrderID INT NOT NULL,
-    ProductID INT NOT NULL,
-    Quantity INT DEFAULT 1,
-    PriceAtPurchase DECIMAL(18, 2), -- Lưu giá tại thời điểm mua
-    CustomerProvidedInfo NVARCHAR(255), -- Email khách nhập (nếu có)
-    
-    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID),
-    FOREIGN KEY (ProductID) REFERENCES Product(ProductID)
+-- 5.4 Tạo bảng Product_Subscription (Bảng nối nhiều-nhiều giữa Product và Subscription)
+-- Bảng này dùng để định nghĩa các gói (plans) áp dụng cho từng sản phẩm
+CREATE TABLE product_subscription (
+    product_subscription_id INT IDENTITY(1,1) PRIMARY KEY,
+    product_id INT NOT NULL,
+    plan_id INT NOT NULL,
+    price DECIMAL(18,0) NOT NULL, -- Giá của gói này (có thể khác nhau cho từng sản phẩm)
+    is_active BIT DEFAULT 1, -- Gói có được kích hoạt cho sản phẩm này không
+    -- Khóa ngoại
+    FOREIGN KEY (product_id) REFERENCES Product(ProductID),
+    FOREIGN KEY (plan_id) REFERENCES Subscription(plan_id),
+    -- Đảm bảo không có 2 gói trùng lặp cho cùng 1 sản phẩm
+    UNIQUE (product_id, plan_id)
+);
+GO
+
+-- 5.5 Tạo bảng account_items (Tài khoản được giao cho khách)
+create table account_item (
+    account_item_id INT IDENTITY(1,1) PRIMARY KEY,
+    product_id int NOT NULL,
+    account_password varchar(255),
+    account_email varchar(255),
+    created_at datetime default getdate(),
+    status_id int NOT NULL,
+    FOREIGN KEY (product_id) REFERENCES Product(ProductID),
+    FOREIGN KEY (status_id) REFERENCES [Status](StatusID),
+);
+GO
+create table account_slot (
+    account_slot_id INT IDENTITY(1,1) PRIMARY KEY,
+    account_item_id INT NOT NULL,
+    slot_name NVARCHAR(50) NOT NULL,
+    pin_code VARCHAR(50),
+    status_id int not null,
+    FOREIGN KEY (account_item_id) REFERENCES account_item(account_item_id),
+    FOREIGN KEY (status_id) REFERENCES [Status](StatusID),
+);
+
+-- 6. Tạo bảng Orders (Đơn hàng)
+CREATE TABLE [orders] (
+    order_id INT IDENTITY(1,1) PRIMARY KEY,
+    account_id INT NOT NULL,
+    product_subscription_id INT NOT NULL,
+    slot_id int,
+    order_date DATETIME DEFAULT GETDATE(),
+    customer_provided_info NVARCHAR(255), -- Email khách nhập (nếu có)
+    total_amount DECIMAL(18,0) NOT NULL,
+    note NVARCHAR(500),
+    status_id INT,
+    FOREIGN KEY (account_id) REFERENCES Account(AccountID),
+    FOREIGN KEY (product_subscription_id) REFERENCES Product_Subscription(product_subscription_id),
+    FOREIGN KEY (slot_id) REFERENCES account_slot(account_slot_id),
+    FOREIGN KEY (status_id) REFERENCES [Status](StatusID)
 );
 GO
 
 -- 8. Tạo bảng Transaction (Lịch sử giao dịch & Biến động số dư)
-CREATE TABLE [Transaction] (
+CREATE TABLE [Transactions] (
     TransactionID INT IDENTITY(1,1) PRIMARY KEY,
     AccountID INT NOT NULL, 
     OrderID INT, -- Null nếu là nạp/rút tiền thuần túy
