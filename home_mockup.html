@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Account Shop</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@500;700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#0ea5e9',
+                        secondary: '#38bdf8',
+                        dark: '#0f172a',
+                    },
+                    boxShadow: {
+                        'glass': '0 10px 15px -3px rgba(0, 0, 0, 0.08)',
+                        'glow': '0 4px 12px rgba(14, 165, 233, 0.2)',
+                        'glow-hover': '0 8px 24px rgba(14, 165, 233, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom scrollbar & base styles if needed */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-600 font-inter antialiased overflow-x-hidden leading-relaxed">
+
+    <!-- Header Navigation -->
+    <header class="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-black/5 shadow-sm py-4">
+        <div class="max-w-[1600px] mx-auto px-10 flex justify-between items-center">
+
+            <!-- Logo -->
+            <a href="#" class="text-[26px] font-extrabold text-slate-900 tracking-wide font-outfit">
+                VanDat<span class="text-primary">Premium</span>
+            </a>
+
+            <!-- Nav Links -->
+            <ul class="hidden lg:flex gap-12 list-none m-0 p-0">
+                <li class="relative group">
+                    <a href="#"
+                        class="text-slate-900 font-semibold text-[15px] flex items-center gap-1 hover:text-primary transition-colors py-2">
+                        Trang chủ
+                    </a>
+                </li>
+                <li class="relative group">
+                    <a href="#products"
+                        class="text-slate-900 font-semibold text-[15px] flex items-center gap-1 hover:text-primary transition-colors py-2">
+                        Sản phẩm <span class="text-[10px] text-slate-400 mt-[2px]">▼</span>
+                    </a>
+                    <!-- Dropdown -->
+                    <div
+                        class="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                        <div
+                            class="w-48 bg-white rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden transform origin-top scale-95 group-hover:scale-100 transition-transform duration-300">
+                            <ul class="py-2 flex flex-col m-0 p-0 list-none">
+                                <li><a href="#"
+                                        class="block px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors">Phim
+                                        Ảnh</a></li>
+                                <li><a href="#"
+                                        class="block px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors">Âm
+                                        Nhạc</a></li>
+                                <li><a href="#"
+                                        class="block px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors">Game</a>
+                                </li>
+                                <li><a href="#"
+                                        class="block px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors">VPN
+                                        & Tools</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </li>
+                <li class="relative group">
+                    <a href="#blog"
+                        class="text-slate-900 font-semibold text-[15px] flex items-center gap-1 hover:text-primary transition-colors py-2">
+                        Tin tức
+                    </a>
+                </li>
+                <li class="relative group">
+                    <a href="#"
+                        class="text-slate-900 font-semibold text-[15px] flex items-center gap-1 hover:text-primary transition-colors py-2">
+                        Thư viện <span class="text-[10px] text-slate-400 mt-[2px]">▼</span>
+                    </a>
+                    <!-- Dropdown -->
+                    <div
+                        class="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                        <div
+                            class="w-56 bg-white rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden transform origin-top scale-95 group-hover:scale-100 transition-transform duration-300">
+                            <ul class="py-2 flex flex-col m-0 p-0 list-none">
+                                <li><a href="#"
+                                        class="block px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors">Hướng
+                                        dẫn sử dụng</a></li>
+                                <li><a href="#"
+                                        class="block px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors">Chính
+                                        sách bảo hành</a></li>
+                                <li><a href="#"
+                                        class="block px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors">Câu
+                                        hỏi thường gặp</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+
+            <!-- User Actions -->
+            <div class="flex items-center gap-6">
+                <!-- Search -->
+                <div
+                    class="flex items-center border border-slate-200 rounded-full px-4 py-2 bg-white w-64 focus-within:border-primary transition-colors">
+                    <input type="text" placeholder="Từ khóa tìm kiếm"
+                        class="border-none outline-none w-full text-sm text-slate-900 bg-transparent">
+                    <button class="text-slate-400 hover:text-primary flex items-center transition-colors">
+                        <span class="material-icons-outlined text-[20px]">search</span>
+                    </button>
+                </div>
+
+                <!-- Icons -->
+                <div class="flex items-center gap-5">
+                    <a href="#"
+                        class="text-slate-900 relative transition-transform hover:scale-110 flex items-center justify-center">
+                        <span class="material-icons-outlined">person</span>
+                    </a>
+                    <a href="#"
+                        class="text-slate-900 relative transition-transform hover:scale-110 flex items-center justify-center">
+                        <span class="material-icons-outlined">favorite_border</span>
+                        <span
+                            class="absolute -top-1.5 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">0</span>
+                    </a>
+                    <a href="#"
+                        class="text-slate-900 relative transition-transform hover:scale-110 flex items-center justify-center">
+                        <span class="material-icons-outlined">shopping_cart</span>
+                        <span
+                            class="absolute -top-1.5 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section (Categories & Slider) -->
+    <section class="pt-28 pb-12">
+        <div class="max-w-[1200px] mx-auto px-6">
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- Sidebar Categories -->
+                <div class="w-full lg:w-[280px] flex-shrink-0">
+                    <!-- Category Header -->
+                    <div class="flex h-[46px]">
+                        <div
+                            class="bg-white flex items-center gap-2 px-5 text-primary font-bold text-[15px] rounded-tl-xl relative z-10 w-40 shadow-[2px_0_8px_rgba(0,0,0,0.06)] border-t border-l border-slate-100">
+                            <span class="material-icons-outlined text-[20px]">menu</span>
+                            Danh mục
+                        </div>
+                        <div class="bg-primary flex-grow rounded-tr-xl rounded-br-xl -ml-2 relative z-0 shadow-sm">
+                        </div>
+                    </div>
+                    <!-- Category List -->
+                    <div
+                        class="bg-white border-x border-b border-slate-100 rounded-b-xl shadow-[0_4px_10px_rgba(0,0,0,0.03)] flex flex-col p-3 gap-1 relative z-10 -mt-1">
+                        <a href="#"
+                            class="flex justify-between items-center px-4 py-2.5 text-[13px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-md transition-colors group">
+                            Phim Ảnh
+                            <span
+                                class="material-icons-outlined text-[16px] text-slate-400 group-hover:text-primary">chevron_right</span>
+                        </a>
+                        <a href="#"
+                            class="flex justify-between items-center px-4 py-2.5 text-[13px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-md transition-colors group">
+                            Âm Nhạc
+                            <span
+                                class="material-icons-outlined text-[16px] text-slate-400 group-hover:text-primary">chevron_right</span>
+                        </a>
+                        <a href="#"
+                            class="flex justify-between items-center px-4 py-2.5 text-[13px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-md transition-colors group">
+                            Game
+                            <span
+                                class="material-icons-outlined text-[16px] text-slate-400 group-hover:text-primary">chevron_right</span>
+                        </a>
+                        <a href="#"
+                            class="flex justify-between items-center px-4 py-2.5 text-[13px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-md transition-colors group">
+                            VPN & Tools
+                            <span
+                                class="material-icons-outlined text-[16px] text-slate-400 group-hover:text-primary">chevron_right</span>
+                        </a>
+                        <a href="#"
+                            class="flex justify-between items-center px-4 py-2.5 text-[13px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-md transition-colors group">
+                            Phần Mềm Học Tập
+                        </a>
+                        <a href="#"
+                            class="flex justify-between items-center px-4 py-2.5 text-[13px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-md transition-colors group">
+                            Phần Mềm Làm Việc
+                        </a>
+                        <a href="#"
+                            class="flex justify-between items-center px-4 py-2.5 text-[13px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-md transition-colors group">
+                            Khác
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Slider Banner -->
+                <div
+                    class="flex-grow relative rounded-xl overflow-hidden shadow-sm flex items-center bg-slate-50 min-h-[400px]">
+                    <!-- Image Background (Right Side) -->
+                    <div class="absolute inset-0 z-0">
+                        <img src="file:///C:/Users/vdat2/.gemini/antigravity/brain/905938ba-e08c-4e76-8787-1ae57909ec85/hero_banner_light_1778128328197.png"
+                            alt="Banner" class="w-full h-full object-cover">
+                    </div>
+
+                    <!-- Content gradient overlay to make text readable -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-white/95 via-white/80 to-transparent z-10 w-2/3">
+                    </div>
+
+                    <!-- Content -->
+                    <div class="w-full md:w-[70%] p-10 md:p-14 relative z-20">
+                        <h1
+                            class="font-outfit text-4xl md:text-5xl font-bold leading-tight mb-5 bg-gradient-to-br from-slate-900 to-primary bg-clip-text text-transparent">
+                            Thế Giới Tài Khoản<br>Premium Số 1
+                        </h1>
+                        <p class="text-[15px] text-slate-600 mb-8 leading-relaxed max-w-md">
+                            Khám phá kho tài khoản giải trí, học tập và làm việc bản quyền với mức giá tốt nhất thị
+                            trường. Giao hàng tự động 24/7, bảo hành uy tín.
+                        </p>
+                        <a href="#products"
+                            class="inline-block bg-gradient-to-br from-primary to-secondary text-white px-8 py-3 text-sm font-semibold rounded-lg shadow-glow hover:-translate-y-0.5 hover:shadow-glow-hover transition-all">
+                            Khám Phá Ngay
+                        </a>
+                    </div>
+
+                    <!-- Slider Controls -->
+                    <button
+                        class="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-12 bg-white/90 hover:bg-white text-primary rounded-r-lg flex items-center justify-center transition-colors z-20 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                        <span class="material-icons-outlined -ml-1">arrow_left</span>
+                    </button>
+                    <button
+                        class="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-12 bg-white/90 hover:bg-white text-primary rounded-l-lg flex items-center justify-center transition-colors z-20 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
+                        <span class="material-icons-outlined -mr-1">arrow_right</span>
+                    </button>
+
+                    <!-- Slider Dots -->
+                    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2.5 z-20 items-center">
+                        <div
+                            class="w-3.5 h-3.5 rounded-full border border-primary flex items-center justify-center cursor-pointer">
+                            <div class="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                        </div>
+                        <div
+                            class="w-1.5 h-1.5 rounded-full bg-primary/30 cursor-pointer hover:bg-primary/60 transition-colors">
+                        </div>
+                        <div
+                            class="w-1.5 h-1.5 rounded-full bg-primary/30 cursor-pointer hover:bg-primary/60 transition-colors">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories Section -->
+    <section id="categories" class="max-w-[1200px] mx-auto px-6 mt-16">
+        <div class="flex justify-between items-end mb-10">
+            <h2
+                class="font-outfit text-3xl font-bold text-slate-900 relative pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-10 after:h-1 after:bg-primary after:rounded-full">
+                Danh Mục Nổi Bật
+            </h2>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
+            <!-- Card 1 -->
+            <div
+                class="bg-white border border-white/50 rounded-2xl p-8 text-center cursor-pointer shadow-glass hover:-translate-y-2 hover:bg-white hover:border-primary/20 hover:shadow-xl transition-all group">
+                <span class="text-4xl block mb-4 group-hover:scale-110 transition-transform">🎬</span>
+                <h3 class="font-outfit text-lg font-semibold text-slate-900">Phim Ảnh</h3>
+            </div>
+            <!-- Card 2 -->
+            <div
+                class="bg-white border border-white/50 rounded-2xl p-8 text-center cursor-pointer shadow-glass hover:-translate-y-2 hover:bg-white hover:border-primary/20 hover:shadow-xl transition-all group">
+                <span class="text-4xl block mb-4 group-hover:scale-110 transition-transform">🎵</span>
+                <h3 class="font-outfit text-lg font-semibold text-slate-900">Âm Nhạc</h3>
+            </div>
+            <!-- Card 3 -->
+            <div
+                class="bg-white border border-white/50 rounded-2xl p-8 text-center cursor-pointer shadow-glass hover:-translate-y-2 hover:bg-white hover:border-primary/20 hover:shadow-xl transition-all group">
+                <span class="text-4xl block mb-4 group-hover:scale-110 transition-transform">🎮</span>
+                <h3 class="font-outfit text-lg font-semibold text-slate-900">Game</h3>
+            </div>
+            <!-- Card 4 -->
+            <div
+                class="bg-white border border-white/50 rounded-2xl p-8 text-center cursor-pointer shadow-glass hover:-translate-y-2 hover:bg-white hover:border-primary/20 hover:shadow-xl transition-all group">
+                <span class="text-4xl block mb-4 group-hover:scale-110 transition-transform">🛡️</span>
+                <h3 class="font-outfit text-lg font-semibold text-slate-900">VPN & Tools</h3>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Products -->
+    <section id="products" class="max-w-[1200px] mx-auto px-6">
+        <div class="flex justify-between items-end mb-10">
+            <h2
+                class="font-outfit text-3xl font-bold text-slate-900 relative pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-10 after:h-1 after:bg-primary after:rounded-full">
+                Tài Khoản Bán Chạy
+            </h2>
+            <a href="#" class="text-primary font-semibold hover:underline">Xem tất cả →</a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-24">
+
+            <!-- Product 1 -->
+            <div
+                class="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-primary/20 transition-all flex flex-col relative group">
+                <div
+                    class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-primary border border-primary/20 z-10 shadow-sm">
+                    Tự động giao</div>
+                <div class="h-44 bg-cover bg-center relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:bg-gradient-to-t after:from-white after:to-transparent"
+                    style="background-image: url('file:///C:/Users/vdat2/.gemini/antigravity/brain/905938ba-e08c-4e76-8787-1ae57909ec85/movie_product_1778128076530.png');">
+                </div>
+
+                <div class="p-6 flex-grow flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-outfit text-xl font-bold text-slate-900 mb-2">NetfIix Premium 4K</h3>
+                        <p class="text-sm text-slate-500">Tài khoản cấp sẵn, xem 1 thiết bị, bảo hành full time.</p>
+                    </div>
+                    <div class="mt-4">
+                        <div class="font-outfit text-2xl font-bold text-primary mb-4">65,000đ <span
+                                class="text-sm font-normal text-slate-500">/ 1 Tháng</span></div>
+                        <button
+                            class="w-full bg-gradient-to-br from-primary to-secondary text-white py-2.5 rounded-lg font-semibold shadow-glow hover:shadow-glow-hover transition-all">Mua
+                            Ngay</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product 2 -->
+            <div
+                class="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-primary/20 transition-all flex flex-col relative group">
+                <div
+                    class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-primary border border-primary/20 z-10 shadow-sm">
+                    Hot</div>
+                <div class="h-44 bg-cover bg-center relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:bg-gradient-to-t after:from-white after:to-transparent"
+                    style="background-image: url('file:///C:/Users/vdat2/.gemini/antigravity/brain/905938ba-e08c-4e76-8787-1ae57909ec85/music_product_1778128093761.png');">
+                </div>
+
+                <div class="p-6 flex-grow flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-outfit text-xl font-bold text-slate-900 mb-2">Spoti Premium</h3>
+                        <p class="text-sm text-slate-500">Nâng cấp chính chủ từ email của bạn. Nghe nhạc không quảng
+                            cáo.</p>
+                    </div>
+                    <div class="mt-4">
+                        <div class="font-outfit text-2xl font-bold text-primary mb-4">180,000đ <span
+                                class="text-sm font-normal text-slate-500">/ 6 Tháng</span></div>
+                        <button
+                            class="w-full bg-gradient-to-br from-primary to-secondary text-white py-2.5 rounded-lg font-semibold shadow-glow hover:shadow-glow-hover transition-all">Mua
+                            Ngay</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product 3 -->
+            <div
+                class="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-primary/20 transition-all flex flex-col relative group">
+                <div
+                    class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-emerald-600 border border-emerald-600/30 z-10 shadow-sm">
+                    Mới</div>
+                <div
+                    class="h-44 bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center text-5xl">
+                    🤖</div>
+
+                <div class="p-6 flex-grow flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-outfit text-xl font-bold text-slate-900 mb-2">ChatGPT Plus</h3>
+                        <p class="text-sm text-slate-500">Sử dụng mô hình GPT-4 mới nhất. Cấp sẵn tài khoản.</p>
+                    </div>
+                    <div class="mt-4">
+                        <div class="font-outfit text-2xl font-bold text-primary mb-4">120,000đ <span
+                                class="text-sm font-normal text-slate-500">/ 1 Tháng</span></div>
+                        <button
+                            class="w-full bg-gradient-to-br from-primary to-secondary text-white py-2.5 rounded-lg font-semibold shadow-glow hover:shadow-glow-hover transition-all">Mua
+                            Ngay</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product 4 -->
+            <div
+                class="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-primary/20 transition-all flex flex-col relative group">
+                <div
+                    class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-orange-600 border border-orange-600/30 z-10 shadow-sm">
+                    Game</div>
+                <div
+                    class="h-44 bg-gradient-to-tr from-orange-600 to-orange-400 flex items-center justify-center text-5xl">
+                    ⚔️</div>
+
+                <div class="p-6 flex-grow flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-outfit text-xl font-bold text-slate-900 mb-2">Steam Wallet Code</h3>
+                        <p class="text-sm text-slate-500">Nạp tiền trực tiếp vào tài khoản Steam. Code tự động.</p>
+                    </div>
+                    <div class="mt-4">
+                        <div class="font-outfit text-2xl font-bold text-primary mb-4">250,000đ <span
+                                class="text-sm font-normal text-slate-500">/ 10$ Code</span></div>
+                        <button
+                            class="w-full bg-gradient-to-br from-primary to-secondary text-white py-2.5 rounded-lg font-semibold shadow-glow hover:shadow-glow-hover transition-all">Mua
+                            Ngay</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="bg-white py-20 border-y border-slate-100 mb-24">
+        <div class="max-w-[1200px] mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div class="flex gap-5">
+                <div
+                    class="w-16 h-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-3xl shrink-0">
+                    ⚡</div>
+                <div>
+                    <h3 class="font-outfit text-xl font-bold text-slate-900 mb-2">Giao Hàng Tự Động</h3>
+                    <p class="text-sm text-slate-500">Hệ thống gửi thông tin tài khoản hoàn toàn tự động ngay sau khi
+                        thanh toán 24/7.</p>
+                </div>
+            </div>
+            <div class="flex gap-5">
+                <div
+                    class="w-16 h-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-3xl shrink-0">
+                    🛡️</div>
+                <div>
+                    <h3 class="font-outfit text-xl font-bold text-slate-900 mb-2">Bảo Hành Uy Tín</h3>
+                    <p class="text-sm text-slate-500">Cam kết bảo hành 1 đổi 1 hoặc hoàn tiền trong suốt thời gian gói
+                        cước (Subscription).</p>
+                </div>
+            </div>
+            <div class="flex gap-5">
+                <div
+                    class="w-16 h-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-3xl shrink-0">
+                    💳</div>
+                <div>
+                    <h3 class="font-outfit text-xl font-bold text-slate-900 mb-2">Đa Dạng Thanh Toán</h3>
+                    <p class="text-sm text-slate-500">Hỗ trợ nạp ví (Balance) qua Momo, VNPay, và chuyển khoản ngân hàng
+                        nhanh chóng.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Blog / News -->
+    <section id="blog" class="max-w-[1200px] mx-auto px-6">
+        <div class="flex justify-between items-end mb-10">
+            <h2
+                class="font-outfit text-3xl font-bold text-slate-900 relative pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-10 after:h-1 after:bg-primary after:rounded-full">
+                Hướng Dẫn & Tin Tức
+            </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24">
+            <div
+                class="bg-white rounded-2xl overflow-hidden shadow-glass border border-slate-50 hover:-translate-y-1 hover:shadow-xl transition-all">
+                <div class="h-40 bg-slate-200 flex items-center justify-center text-slate-400">Hình ảnh bài viết 1</div>
+                <div class="p-6">
+                    <span class="text-xs font-bold text-primary block mb-2">07 Tháng 05, 2026</span>
+                    <h3 class="font-outfit text-lg font-bold text-slate-900 mb-3 leading-snug">Hướng dẫn xử lý lỗi khi
+                        đăng nhập thiết bị mới</h3>
+                    <p class="text-sm text-slate-500 line-clamp-2">Bài viết này sẽ hướng dẫn bạn các bước cụ thể để đăng
+                        nhập tài khoản vào Smart TV mà không bị văng lỗi.</p>
+                </div>
+            </div>
+            <div
+                class="bg-white rounded-2xl overflow-hidden shadow-glass border border-slate-50 hover:-translate-y-1 hover:shadow-xl transition-all">
+                <div class="h-40 bg-slate-200 flex items-center justify-center text-slate-400">Hình ảnh bài viết 2</div>
+                <div class="p-6">
+                    <span class="text-xs font-bold text-primary block mb-2">05 Tháng 05, 2026</span>
+                    <h3 class="font-outfit text-lg font-bold text-slate-900 mb-3 leading-snug">Cách nạp tiền vào ví bằng
+                        Momo tự động</h3>
+                    <p class="text-sm text-slate-500 line-clamp-2">Hệ thống nạp tự động 24/7. Chỉ cần quét mã QR kèm
+                        theo nội dung chuyển khoản là có tiền ngay trong 3 giây.</p>
+                </div>
+            </div>
+            <div
+                class="bg-white rounded-2xl overflow-hidden shadow-glass border border-slate-50 hover:-translate-y-1 hover:shadow-xl transition-all">
+                <div class="h-40 bg-slate-200 flex items-center justify-center text-slate-400">Hình ảnh bài viết 3</div>
+                <div class="p-6">
+                    <span class="text-xs font-bold text-primary block mb-2">01 Tháng 05, 2026</span>
+                    <h3 class="font-outfit text-lg font-bold text-slate-900 mb-3 leading-snug">Thông báo cập nhật chính
+                        sách bảo hành mới</h3>
+                    <p class="text-sm text-slate-500 line-clamp-2">Để đảm bảo quyền lợi tối đa cho khách hàng, NexusAcc
+                        áp dụng chính sách bảo hành linh hoạt mới từ tháng này.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Floating Chat -->
+    <div
+        class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-white text-2xl rounded-full flex items-center justify-center shadow-glow cursor-pointer hover:scale-110 transition-transform z-50">
+        💬
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white py-16 border-t border-slate-100">
+        <div class="max-w-[1200px] mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-10 mb-10">
+                <div class="md:col-span-2">
+                    <a href="#" class="text-[24px] font-extrabold text-slate-900 tracking-wide font-outfit block mb-4">
+                        VanDat<span class="text-primary">Premium</span>
+                    </a>
+                    <p class="text-sm text-slate-500 pr-4">Hệ thống bán lẻ tài khoản Premium uy tín hàng đầu. Trải
+                        nghiệm giải trí và học tập không giới hạn.</p>
+                </div>
+                <div>
+                    <h4 class="font-outfit text-lg font-bold text-slate-900 mb-5">Danh Mục</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-sm text-slate-500 hover:text-primary transition-colors">Phim Ảnh</a>
+                        </li>
+                        <li><a href="#" class="text-sm text-slate-500 hover:text-primary transition-colors">Âm Nhạc</a>
+                        </li>
+                        <li><a href="#" class="text-sm text-slate-500 hover:text-primary transition-colors">Game &
+                                Tools</a></li>
+                        <li><a href="#" class="text-sm text-slate-500 hover:text-primary transition-colors">Học Tập</a>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-outfit text-lg font-bold text-slate-900 mb-5">Chính Sách</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-sm text-slate-500 hover:text-primary transition-colors">Điều Khoản
+                                Dịch Vụ</a></li>
+                        <li><a href="#" class="text-sm text-slate-500 hover:text-primary transition-colors">Chính Sách
+                                Bảo Hành</a></li>
+                        <li><a href="#" class="text-sm text-slate-500 hover:text-primary transition-colors">Chính Sách
+                                Bảo Mật</a></li>
+                        <li><a href="#" class="text-sm text-slate-500 hover:text-primary transition-colors">Câu Hỏi
+                                Thường Gặp</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-outfit text-lg font-bold text-slate-900 mb-5">Liên Hệ</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-sm text-slate-500 hover:text-primary transition-colors">Email:
+                                support@vandanpremium.com</a></li>
+                        <li><a href="#" class="text-sm text-slate-500 hover:text-primary transition-colors">Hotline:
+                                0123.456.789</a></li>
+                        <li><a href="#" class="text-sm text-slate-500 hover:text-primary transition-colors">Fanpage
+                                Facebook</a></li>
+                        <li><a href="#" class="text-sm text-slate-500 hover:text-primary transition-colors">Nhóm
+                                Telegram</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="text-center pt-8 border-t border-slate-100 text-sm text-slate-400">
+                &copy; 2026 VanDatPremium. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>
