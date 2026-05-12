@@ -28,14 +28,6 @@ Tài liệu này phân tích các rủi ro cốt lõi khi kinh doanh dịch vụ
     * **Cơ chế Reset tự động (Bot Automation):** cần một trang Dashboard quản trị tập trung. Khi khách báo lỗi, hệ thống sẽ đẩy thông báo (qua Telegram/Zalo) để bạn xử lý thủ công và nhấn nút "Đã sửa" để gửi thông báo lại cho khách qua Email/SMS
     * **Cảnh báo:** Gắn mã định danh vào tên Profile để dễ dàng truy vết ai là người vừa thực hiện thay đổi.
 
-### 2.2. Xâm phạm Profile của người khác (Profile Intrusion)
-* **Mô tả:** User A xem phim hoặc thay đổi cài đặt trên Profile của User B.
-* **Giải pháp:**
-    * **Mã PIN Profile:** Khuyên khách hàng cài đặt mã PIN cho Profile cá nhân (tính năng có sẵn của Netflix).
-    * **Mapping Database:** Hệ thống quản lý phải ghi nhận chính xác: `Tài khoản X` -> `Slot 1` -> `User A`. Nếu User A vi phạm quy định, hệ thống sẽ tự động gửi cảnh báo hoặc thu hồi quyền truy cập.
-
----
-
 ## 3. Rủi ro Vận hành & Quản lý (Operational Risks)
 
 ### 3.1. Quản lý hạn dùng (Expiry Management)
@@ -49,19 +41,3 @@ Tài liệu này phân tích các rủi ro cốt lõi khi kinh doanh dịch vụ
 * **Giải pháp:**
     * **Trang Trạng thái (System Status):** Hiển thị công khai trạng thái các loại tài khoản trên Web để khách hàng biết lỗi đang được xử lý, tránh gửi quá nhiều Ticket trùng lặp.
     * **Nút "Báo lỗi nhanh":** Thay vì chat, khách nhấn nút báo lỗi -> Hệ thống tự phân loại và đưa vào hàng đợi xử lý.
-
----
-
-## 4. Mô hình Cơ sở dữ liệu gợi ý (Database Schema)
-
-Để quản lý tốt, hệ thống web của bạn cần cấu trúc dữ liệu như sau:
-
-1.  **Bảng Accounts (Tài khoản gốc):**
-    * `id`, `email`, `password`, `type` (Gói 4K, HD...), `max_slots` (thường là 5), `current_usage`, `expiry_date`.
-2.  **Bảng Profiles (Phân khe người dùng):**
-    * `account_id`, `profile_index` (1 đến 5), `user_id` (khách mua), `profile_name`, `profile_pin`.
-3.  **Bảng Tickets (Khiếu nại):**
-    * `id`, `user_id`, `order_id`, `issue_type`, `status` (Pending, Fixed, Refunded).
-
----
-*Tài liệu này được soạn thảo để hỗ trợ việc thiết kế hệ thống quản lý rủi ro cho mô hình kinh doanh tài khoản số.*
