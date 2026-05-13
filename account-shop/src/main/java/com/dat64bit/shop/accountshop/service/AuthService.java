@@ -47,7 +47,6 @@ public class AuthService {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = tokenProvider.generateToken(authentication);
-
         Account account = accountRepository.findAll().stream()
                 .filter(a -> a.getUsername().equals(request.getUsername()))
                 .findFirst()
