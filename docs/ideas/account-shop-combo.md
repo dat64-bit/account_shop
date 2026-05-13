@@ -1,29 +1,39 @@
 # Nền Tảng Dịch Vụ Giải Trí Trọn Gói (Entertainment Combo & Wallet Shop)
 
 ## Vấn đề cần giải quyết
-Làm thế nào để xây dựng một nền tảng TMĐT (Spring Boot + Node.js) tối ưu hóa SEO, bán cả tài khoản số đơn lẻ lẫn "Gói Combo Giải Trí", với luồng thanh toán tự động qua ngân hàng và Dashboard tự phục vụ cho khách?
+Làm thế nào để xây dựng một nền tảng TMĐT bán tài khoản số (đơn lẻ & Combo) có khả năng:
+1. **Phục vụ giai đoạn đầu (ít khách):** Hỗ trợ bán hàng thủ công, kéo khách từ Facebook/Zalo, cung cấp công cụ cho Admin tự gán tài khoản cho khách để quản lý hạn dùng.
+2. **Phục vụ giai đoạn mở rộng (nhiều khách):** Tự động hóa hoàn toàn từ khâu thanh toán qua ngân hàng (Webhook) đến khâu tự động nhả tài khoản (Fulfillment) cho khách.
 
 ## Hướng đi đề xuất
-Mô hình "Ví điện tử nội bộ". Khách hàng nạp tiền (Top-up) vào hệ thống thông qua quét mã QR chuyển khoản tự động (Casso/SePay). Sau đó dùng số dư này để mua lẻ tài khoản (Netflix, YouTube) hoặc mua các "Gói Combo" với giá ưu đãi. Việc sử dụng ví nội bộ giúp thanh toán tức thì và giải quyết hoàn toàn bài toán hoàn tiền thủ công rườm rà.
+Phát triển hệ thống theo **Chiến lược 2 Giai đoạn (Phased Strategy)**:
 
-## Phạm vi MVP (Phiên bản đầu tiên bắt buộc phải có)
-- **Backend (Spring Boot):** 
-  - Hệ thống Ví (Wallet Ledger): Xử lý cộng/trừ tiền chính xác, chống nạp khống (Race condition).
-  - Tích hợp Webhook Ngân hàng tự động cộng tiền vào ví.
-  - Quản lý Sản phẩm & Kho (Inventory: Kho Netflix cấp sẵn, Kho YouTube chờ nâng cấp).
-  - Hệ thống Ticket nội bộ.
-- **Frontend (Node.js - React/Next.js):** 
-  - Giao diện Landing Page chuẩn SEO.
-  - Giao diện nạp tiền (Hiện QR code + Cú pháp chuyển khoản).
-  - Dashboard Khách hàng: Xem lịch sử giao dịch ví, Lấy tài khoản, Nút tự nhận mã xác minh Household, Báo lỗi sự cố.
+- **Giai đoạn 1 (Bán thủ công):** Web đóng vai trò Catalog trưng bày chuẩn SEO. Khách hàng bấm nút "Liên hệ Admin" để mua qua Facebook. Admin sử dụng hệ thống Quản trị (Dashboard) để nhập kho, tự tạo User ảo cho khách Facebook, gán tài khoản thủ công và tự động theo dõi hạn sử dụng.
+- **Giai đoạn 2 (Ví điện tử nội bộ):** Khách hàng nạp tiền (Top-up) vào web thông qua mã QR chuyển khoản ngân hàng tự động bằng **SePay**. Sau đó dùng số dư Ví này để mua lẻ tài khoản hoặc mua Combo trực tiếp trên web. Hệ thống tự động giao hàng (Auto-Fulfillment).
+
+## Phạm vi MVP (Phiên bản đầu tiên)
+
+- **Backend (Spring Boot):**
+  - Hệ thống Ví (Wallet Ledger): Xử lý nạp/trừ tiền an toàn.
+  - Tích hợp Webhook **SePay** tự động cộng tiền vào ví.
+  - Quản lý Sản phẩm (Đơn lẻ & Combo linh hoạt 3 loại: 1 user, nhiều user, cần email nâng cấp).
+  - Quản lý Kho (Inventory).
+  - Quản lý User & Thống kê doanh thu cho Admin.
+  - Hệ thống Ticket nội bộ (Xử lý khiếu nại lỗi tài khoản).
+
+- **Frontend (React / Next.js):**
+  - **Trang chủ & Sản phẩm:** Hiển thị SEO, thông tin gói Combo. Nút mua hàng linh hoạt giữa "Mua ngay" và "Liên hệ Admin".
+  - **Trang Nạp tiền:** Hiển thị mã QR SePay tự động sinh kèm cú pháp nạp tiền.
+  - **Dashboard Khách hàng:** Xem lịch sử giao dịch (nạp/trừ tiền), xem thông tin tài khoản đang dùng (Pass, Profile), và gửi Ticket báo lỗi.
+  - **Dashboard Quản trị (Admin):** Thống kê biểu đồ doanh thu/giao dịch, quản lý Users, xử lý Ticket (có nút hoàn tiền nhanh), và công cụ tạo đơn hàng thủ công cho khách chốt ngoài Facebook.
 
 ## KHÔNG LÀM trong MVP
-- **Cổng thanh toán chính quy (VNPay/Momo Merchant/Stripe):** Không cần thiết vì đã có ví nội bộ + Webhook ngân hàng.
-- **Rút tiền từ Ví ra Ngân hàng:** Không hỗ trợ để tránh rắc rối kế toán và rửa tiền. Chỉ hỗ trợ nạp vào để tiêu.
-- **Tự động Hoàn tiền (Auto Refund):** Lý do logic bù trừ Combo quá phức tạp, rủi ro lỗi hoàn tiền gấp đôi. Admin sẽ refund thủ công qua việc cộng tiền lại vào Ví.
-- **Chat trực tiếp (Live Chat Realtime trên web):** Lý do tốn nhân sự trực. Mọi sự cố chuyển qua luồng Ticket -> chờ Admin xử lý.
-- **Auto-Sourcing (Tự động đi mua hàng từ nguồn khác đổ vào kho):** Lý do quá nặng hệ thống, Admin sẽ nhập kho qua file Excel hoặc form thêm mới.
+- **Cổng thanh toán chính quy (VNPay/Momo Merchant/Stripe):** Thay bằng Ví nội bộ + SePay.
+- **Rút tiền từ Ví ra Ngân hàng:** Không hỗ trợ để tránh rửa tiền. Chỉ hỗ trợ nạp vào để tiêu.
+- **Tự động Hoàn tiền (Auto Refund):** Admin sẽ duyệt ticket và refund thủ công bằng cách bấm nút cộng tiền lại vào Ví khách.
+- **Chat trực tiếp trên Web (Live Chat Realtime):** Dùng Hệ thống Ticket để quản lý luồng CSKH.
+- **Auto-Sourcing:** Admin sẽ tự nhập kho thủ công (thêm tay hoặc import Excel).
 
-## Các Giả định (Assumptions) cần kiểm chứng trước tiên
-- Khách hàng sẵn sàng trả tiền cọc/nạp tiền vào ví trước khi mua hàng.
-- API Webhook Ngân hàng hoạt động đủ nhanh (dưới 10 giây) để khách không bị sốt ruột sau khi chuyển khoản.
+## Các Giả định (Assumptions) cần kiểm chứng
+- Khách hàng sẵn sàng nạp tiền trước vào ví nội bộ để mua hàng (ở Giai đoạn 2).
+- Khách hàng có trải nghiệm mượt mà với việc "Liên hệ người bán" qua Zalo/FB (ở Giai đoạn 1) nếu giao diện Web nhìn đủ uy tín chuyên nghiệp.

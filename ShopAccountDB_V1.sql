@@ -1,4 +1,4 @@
-﻿-- 1. Tạo Database
+-- 1. Tạo Database
 CREATE DATABASE ShopAccountDB_V1;
 GO
 USE ShopAccountDB_V1;
@@ -113,17 +113,49 @@ create table account_slot (
 CREATE TABLE [orders] (
     order_id INT IDENTITY(1,1) PRIMARY KEY,
     account_id INT NOT NULL,
-    product_subscription_id INT NOT NULL,
-    slot_id int,
     order_date DATETIME DEFAULT GETDATE(),
-    customer_provided_info NVARCHAR(255), -- Email khách nhập (nếu có)
     total_amount DECIMAL(18,0) NOT NULL,
     note NVARCHAR(500),
     status_id INT,
     FOREIGN KEY (account_id) REFERENCES Account(AccountID),
-    FOREIGN KEY (product_subscription_id) REFERENCES Product_Subscription(product_subscription_id),
-    FOREIGN KEY (slot_id) REFERENCES account_slot(account_slot_id),
     FOREIGN KEY (status_id) REFERENCES [Status](StatusID)
+);
+GO
+
+-- 6.1 Tạo bảng Order_Details (Chi tiết đơn hàng - Hỗ trợ Combo)
+CREATE TABLE order_details (
+    order_detail_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT NOT NULL,
+    product_subscription_id INT NOT NULL,
+    price DECIMAL(18,0) NOT NULL,
+    item_type VARCHAR(50), -- SHARED_SLOT, FULL_ACCOUNT, UPGRADE_REQUIRED
+    slot_id INT NULL, 
+    account_item_id INT NULL,
+    customer_provided_info NVARCHAR(255) NULL, 
+    fulfillment_status VARCHAR(50) DEFAULT 'PENDING',
+    FOREIGN KEY (order_id) REFERENCES [orders](order_id),
+    FOREIGN KEY (product_subscription_id) REFERENCES product_subscription(product_subscription_id),
+    FOREIGN KEY (slot_id) REFERENCES account_slot(account_slot_id),
+    FOREIGN KEY (account_item_id) REFERENCES account_item(account_item_id)
+);
+GO
+
+-- 6.2 Tạo bảng Combo và Combo_Detail
+CREATE TABLE Combo (
+    combo_id INT IDENTITY(1,1) PRIMARY KEY,
+    combo_name NVARCHAR(255) NOT NULL,
+    price DECIMAL(18,0) NOT NULL,
+    description NVARCHAR(MAX),
+    is_active BIT DEFAULT 1
+);
+GO
+
+CREATE TABLE Combo_Detail (
+    combo_detail_id INT IDENTITY(1,1) PRIMARY KEY,
+    combo_id INT NOT NULL,
+    product_subscription_id INT NOT NULL,
+    FOREIGN KEY (combo_id) REFERENCES Combo(combo_id),
+    FOREIGN KEY (product_subscription_id) REFERENCES product_subscription(product_subscription_id)
 );
 GO
 
@@ -195,5 +227,29 @@ CREATE TABLE BlogContent (
     MediaURL VARCHAR(MAX),     -- Link ảnh hoặc video
     
     FOREIGN KEY (BlogID) REFERENCES Blog(BlogID)
+);
+GO
+
+-- 11. Tạo bảng Ticket (Hỗ trợ Khách hàng)
+CREATE TABLE Ticket (
+    ticket_id INT IDENTITY(1,1) PRIMARY KEY,
+    account_id INT NOT NULL, -- Người gửi báo lỗi
+    order_detail_id INT NOT NULL, -- Báo lỗi cho item nào
+    issue_type NVARCHAR(100),
+    status VARCHAR(50) DEFAULT 'PENDING', -- PENDING, PROCESSING, RESOLVED, REFUNDED
+    created_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (account_id) REFERENCES Account(AccountID),
+    FOREIGN KEY (order_detail_id) REFERENCES order_details(order_detail_id)
+);
+GO
+
+CREATE TABLE Ticket_Reply (
+    reply_id INT IDENTITY(1,1) PRIMARY KEY,
+    ticket_id INT NOT NULL,
+    sender_id INT NOT NULL, -- Có thể là Khách hoặc Admin
+    message NVARCHAR(MAX) NOT NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (ticket_id) REFERENCES Ticket(ticket_id),
+    FOREIGN KEY (sender_id) REFERENCES Account(AccountID)
 );
 GO
