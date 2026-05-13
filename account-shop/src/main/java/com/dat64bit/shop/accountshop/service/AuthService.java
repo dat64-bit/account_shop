@@ -1,53 +1,102 @@
 package com.dat64bit.shop.accountshop.service;
 
 import com.dat64bit.shop.accountshop.dto.request.LoginRequest;
-import com.dat64bit.shop.accountshop.dto.response.JwtResponse; // DTO trả về
-import com.dat64bit.shop.accountshop.entity.User;
-import com.dat64bit.shop.accountshop.enums.AccountStatus;
-import com.dat64bit.shop.accountshop.repository.UserRepository;
-import com.dat64bit.shop.accountshop.util.JwtUtils;
+import com.dat64bit.shop.accountshop.dto.request.RegisterRequest;
+import com.dat64bit.shop.accountshop.dto.response.AuthResponse;
+import com.dat64bit.shop.accountshop.entity.Account;
+import com.dat64bit.shop.accountshop.entity.Role;
+import com.dat64bit.shop.accountshop.repository.AccountRepository;
+import com.dat64bit.shop.accountshop.repository.RoleRepository;
+import com.dat64bit.shop.accountshop.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder; // Thư viện mã hóa pass
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Service
 public class AuthService {
 
     @Autowired
-    private UserRepository userRepository;
+    private AuthenticationManager authenticationManager;
 
     @Autowired
-    private JwtUtils jwtUtils;
+    private AccountRepository accountRepository;
 
-    // PasswordEncoder dung de so sanh mat khau da ma hoa
+    @Autowired
+    private RoleRepository roleRepository;
+
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public JwtResponse login(LoginRequest request) {
-        // 1. Tim user trong DB (Dùng orElseThrow cho gọn code)
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại!"));
+    @Autowired
+    private JwtTokenProvider tokenProvider;
 
-        // 2. check Password
-        // passwordEncoder.matches(pass nhap vao, pass trong db)
-        if (!request.getPassword().equals(user.getPassword())) {
-            throw new RuntimeException("Mật khẩu không chính xác!");
+    public AuthResponse login(LoginRequest request) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getUsername(),
+                        request.getPassword()
+                )
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = tokenProvider.generateToken(authentication);
+
+        Account account = accountRepository.findAll().stream()
+                .filter(a -> a.getUsername().equals(request.getUsername()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Role role = roleRepository.findById(account.getRoleId())
+                .orElseThrow(() -> new RuntimeException("Role not found"));
+
+        AuthResponse response = new AuthResponse();
+        response.setToken(jwt);
+        response.setType("Bearer");
+        response.setAccountId(account.getAccountId());
+        response.setUsername(account.getUsername());
+        response.setEmail(account.getEmail());
+        response.setRole(role.getRoleName());
+        return response;
+    }
+
+    public AuthResponse register(RegisterRequest request) {
+        if (accountRepository.findAll().stream().anyMatch(a -> a.getUsername().equals(request.getUsername()))) {
+            throw new RuntimeException("Error: Username is already taken!");
         }
 
-//        // 3. check trang thai tai khoan (Status)
-//        //tai khoan bi khoa vinh vien
-//        if (user.getStatus().equals(AccountStatus.LOCKED.toString())) {
-//            throw new RuntimeException("Tài khoản đang bị khóa!");
-//        }
-//        // tai khoan chua xa thuc
-//        if (user.getStatus().equals(AccountStatus.UNVERIFIED.toString())) {
-//            throw new RuntimeException("Vui lòng xác thực email trước khi đăng nhập!");
-//        }
+        if (accountRepository.findAll().stream().anyMatch(a -> a.getEmail().equals(request.getEmail()))) {
+            throw new RuntimeException("Error: Email is already in use!");
+        }
 
-        // 4. dang nhap thanh cong thi tao chuoi jwt
-        String token = jwtUtils.getJwtToken(user.getUsername(), user.getRole());
+        // Mặc định tạo Role Customer (giả sử roleId = 2 là Customer, cần tùy chỉnh theo DB)
+        Role role = roleRepository.findAll().stream()
+                .filter(r -> r.getRoleName().equalsIgnoreCase("Customer"))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
 
-        // 5. tra ve chuoi jwt
-        return new JwtResponse(token,"Bearer", "Đăng nhập thành công!", user.getUsername(), user.getRole());
+        // Mặc định Status Active (giả sử ID = 1)
+        
+        Account account = new Account();
+        account.setUsername(request.getUsername());
+        account.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        account.setFullName(request.getFullName());
+        account.setEmail(request.getEmail());
+        account.setPhoneNumber(request.getPhoneNumber());
+        account.setBalance(BigDecimal.ZERO);
+        account.setRoleId(role.getRoleId());
+        account.setAccountStatusId(1); // Active
+        account.setCreatedAt(LocalDateTime.now());
+
+        accountRepository.save(account);
+
+        // Auto login sau khi đăng ký
+        return login(new LoginRequest(request.getUsername(), request.getPassword()));
     }
 }
