@@ -29,7 +29,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .filter(a -> a.getUsername().equals(username))
                 .findFirst()
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-                
+
         Role role = roleRepository.findById(account.getRoleId())
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
