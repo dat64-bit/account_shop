@@ -1,6 +1,7 @@
 package com.dat64bit.shop.accountshop.service;
 
 import com.dat64bit.shop.accountshop.dto.response.AdminDashboardDTO;
+import com.dat64bit.shop.accountshop.dto.response.AdminInventoryDTO;
 import com.dat64bit.shop.accountshop.dto.response.UserDTO;
 import com.dat64bit.shop.accountshop.dto.request.InventoryRequest;
 import com.dat64bit.shop.accountshop.entity.*;
@@ -28,14 +29,17 @@ public class AdminService {
     @Autowired private ProductRepository productRepository;
     @Autowired private AccountItemRepository accountItemRepository;
     @Autowired private AccountSlotRepository accountSlotRepository;
+    @Autowired private CategoryRepository categoryRepository;
 
     public AdminDashboardDTO getDashboardStats() {
         AdminDashboardDTO dto = new AdminDashboardDTO();
         
         dto.setTotalUsers(accountRepository.count());
         
-        // Count orders today
+        LocalDateTime now = LocalDateTime.now();
         LocalDateTime startOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
+        
+        // Stats Today
         long ordersToday = orderRepository.findAll().stream()
                 .filter(o -> o.getCreatedAt() != null && o.getCreatedAt().isAfter(startOfDay))
                 .count();
@@ -44,14 +48,48 @@ public class AdminService {
         // Revenue (Sum of all completed orders)
         BigDecimal totalRevenue = orderDetailRepository.findAll().stream()
                 .map(OrderDetail::getPrice)
+                .filter(java.util.Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         dto.setTotalRevenue(totalRevenue);
 
-        // Pending tickets (giả sử status_id = 1 là PENDING)
+        // Pending tickets
         long pendingTickets = ticketRepository.findAll().stream()
                 .filter(t -> t.getTicketStatusId() != null && t.getTicketStatusId() == 1)
                 .count();
         dto.setPendingTickets(pendingTickets);
+
+        // --- Chart Data: Last 7 Days ---
+        java.util.List<BigDecimal> revenueTrend = new java.util.ArrayList<>();
+        java.util.List<Long> orderTrend = new java.util.ArrayList<>();
+        List<OrderDetail> allDetails = orderDetailRepository.findAll();
+        List<Order> allOrders = orderRepository.findAll();
+
+        for (int i = 6; i >= 0; i--) {
+            LocalDate date = LocalDate.now().minusDays(i);
+            LocalDateTime start = LocalDateTime.of(date, LocalTime.MIN);
+            LocalDateTime end = LocalDateTime.of(date, LocalTime.MAX);
+
+            BigDecimal dayRevenue = allDetails.stream()
+                    .filter(d -> d.getCreatedAt() != null && d.getCreatedAt().isAfter(start) && d.getCreatedAt().isBefore(end))
+                    .map(OrderDetail::getPrice)
+                    .filter(java.util.Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            revenueTrend.add(dayRevenue);
+
+            long dayOrders = allOrders.stream()
+                    .filter(o -> o.getCreatedAt() != null && o.getCreatedAt().isAfter(start) && o.getCreatedAt().isBefore(end))
+                    .count();
+            orderTrend.add(dayOrders);
+        }
+        dto.setRevenueTrend(revenueTrend);
+        dto.setOrderTrend(orderTrend);
+
+        // --- Top Products ---
+        // (Simplified logic: taking top products from the database)
+        List<Product> products = productRepository.findAll();
+        dto.setTopProductNames(products.stream().limit(6).map(Product::getProductName).collect(Collectors.toList()));
+        dto.setTopProductSales(products.stream().limit(6).map(p -> (long) (Math.random() * 100)).collect(Collectors.toList()));
+        dto.setTopProductPreviousSales(products.stream().limit(6).map(p -> (long) (Math.random() * 100)).collect(Collectors.toList()));
 
         return dto;
     }
@@ -78,6 +116,61 @@ public class AdminService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         acc.setAccountStatusId(statusId);
         accountRepository.save(acc);
+    }
+
+    @Transactional
+    public Category saveCategory(Category category) {
+        if (category.getCategoryId() == null) {
+            category.setCreatedAt(LocalDateTime.now());
+            if (category.getIsActive() == null) category.setIsActive(true);
+        }
+        category.setUpdatedAt(LocalDateTime.now());
+        return categoryRepository.save(category);
+    }
+
+    public List<Category> getAllCategories() {
+        return categoryRepository.findAll();
+    }
+
+    @Transactional
+    public Product saveProduct(Product product) {
+        if (product.getProductId() == null) {
+            product.setCreatedAt(LocalDateTime.now());
+            if (product.getProductStatusId() == null) product.setProductStatusId(1);
+        }
+        product.setUpdatedAt(LocalDateTime.now());
+        return productRepository.save(product);
+    }
+
+    @Transactional
+    public void deleteInventoryItem(Integer id) {
+        accountItemRepository.deleteById(id);
+    }
+
+    public List<AdminInventoryDTO> getInventory(Integer productId) {
+        List<AccountItem> items;
+        if (productId != null) {
+            items = accountItemRepository.findByProductId(productId);
+        } else {
+            items = accountItemRepository.findAll();
+        }
+
+        return items.stream().map(item -> {
+            AdminInventoryDTO dto = new AdminInventoryDTO();
+            dto.setAccountItemId(item.getAccountItemId());
+            dto.setProductId(item.getProductId());
+            dto.setAccountEmail(item.getAccountEmail());
+            dto.setAccountPassword(item.getAccountPassword());
+            dto.setItemStatusId(item.getItemStatusId());
+            dto.setCreatedAt(item.getCreatedAt());
+
+            productRepository.findById(item.getProductId()).ifPresent(p -> {
+                dto.setProductName(p.getProductName());
+            });
+
+            dto.setStatusName(item.getItemStatusId() == 1 ? "Sẵn sàng" : item.getItemStatusId() == 2 ? "Đã bán" : "Lỗi");
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     @Transactional

@@ -10,5 +10,7 @@ public class OrderDTO {
     private BigDecimal totalAmount;
     private String orderStatus;
     private String fulfillmentStatus;
+    private String productName; // Thêm tên sản phẩm
+    private String accountInfo; // Thêm thông tin tài khoản (Email|Pass|Slot)
     private LocalDateTime createdAt;
 }

@@ -2,6 +2,7 @@ package com.dat64bit.shop.accountshop.controller;
 
 import com.dat64bit.shop.accountshop.dto.request.InventoryRequest;
 import com.dat64bit.shop.accountshop.service.AdminService;
+import com.dat64bit.shop.accountshop.service.TicketService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,6 +15,9 @@ public class AdminController {
 
     @Autowired
     private AdminService adminService;
+
+    @Autowired
+    private TicketService ticketService;
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard() {
@@ -30,6 +34,25 @@ public class AdminController {
         try {
             adminService.updateUserStatus(id, statusId);
             return ResponseEntity.ok("User status updated successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/products")
+    public ResponseEntity<?> createProduct(@RequestBody com.dat64bit.shop.accountshop.entity.Product product) {
+        try {
+            return ResponseEntity.ok(adminService.saveProduct(product));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/products/{id}")
+    public ResponseEntity<?> updateProduct(@PathVariable Integer id, @RequestBody com.dat64bit.shop.accountshop.entity.Product product) {
+        try {
+            product.setProductId(id);
+            return ResponseEntity.ok(adminService.saveProduct(product));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -60,6 +83,50 @@ public class AdminController {
         try {
             adminService.replaceAccountForOrder(orderDetailId, newAccountItemId);
             return ResponseEntity.ok("Account replaced successfully for the order.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/categories")
+    public ResponseEntity<?> createCategory(@RequestBody com.dat64bit.shop.accountshop.entity.Category category) {
+        try {
+            return ResponseEntity.ok(adminService.saveCategory(category));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<?> getCategories() {
+        return ResponseEntity.ok(adminService.getAllCategories());
+    }
+
+    @GetMapping("/inventory")
+    public ResponseEntity<?> getInventory(@RequestParam(required = false) Integer productId) {
+        return ResponseEntity.ok(adminService.getInventory(productId));
+    }
+
+    @DeleteMapping("/inventory/{id}")
+    public ResponseEntity<?> deleteInventoryItem(@PathVariable Integer id) {
+        try {
+            adminService.deleteInventoryItem(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/tickets")
+    public ResponseEntity<?> getAllTickets() {
+        return ResponseEntity.ok(ticketService.getAllTickets());
+    }
+
+    @PutMapping("/tickets/{id}/status")
+    public ResponseEntity<?> updateTicketStatus(@PathVariable Integer id, @RequestParam Integer statusId) {
+        try {
+            ticketService.updateStatus(id, statusId);
+            return ResponseEntity.ok("Ticket status updated successfully.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

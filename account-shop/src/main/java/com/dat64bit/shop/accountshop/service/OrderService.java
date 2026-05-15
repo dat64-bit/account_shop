@@ -22,6 +22,8 @@ public class OrderService {
     @Autowired private OrderRepository orderRepository;
     @Autowired private OrderDetailRepository orderDetailRepository;
     @Autowired private TransactionRepository transactionRepository;
+    @Autowired private ProductRepository productRepository;
+    @Autowired private AccountItemRepository accountItemRepository;
 
     @Transactional
     public OrderDTO checkout(String username, CheckoutRequest request) {
@@ -106,15 +108,39 @@ public class OrderService {
         Account account = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
                 
-        return orderRepository.findAll().stream()
-                .filter(o -> o.getAccountId().equals(account.getAccountId()))
+        return orderRepository.findByAccountIdOrderByCreatedAtDesc(account.getAccountId()).stream()
                 .map(o -> {
                     OrderDTO dto = new OrderDTO();
                     dto.setOrderId(o.getOrderId());
                     dto.setTotalAmount(o.getTotalAmount());
                     dto.setOrderStatus(o.getOrderStatusId() != null && o.getOrderStatusId() == 2 ? "COMPLETED" : "PENDING");
-                    dto.setFulfillmentStatus("COMPLETED"); // Giả định
                     dto.setCreatedAt(o.getCreatedAt());
+
+                    // Lấy chi tiết đơn hàng đầu tiên
+                    List<OrderDetail> details = orderDetailRepository.findAll().stream()
+                            .filter(d -> d.getOrderId().equals(o.getOrderId()))
+                            .collect(Collectors.toList());
+                    
+                    if (!details.isEmpty()) {
+                        OrderDetail firstDetail = details.get(0);
+                        subscriptionRepository.findById(firstDetail.getProductSubscriptionId()).ifPresent(sub -> {
+                            productRepository.findById(sub.getProductId()).ifPresent(p -> dto.setProductName(p.getProductName()));
+                        });
+                        
+                        if (firstDetail.getAccountItemId() != null) {
+                            accountItemRepository.findById(firstDetail.getAccountItemId()).ifPresent(item -> {
+                                String info = item.getAccountEmail() + " | " + item.getAccountPassword();
+                                if (firstDetail.getAccountSlotId() != null) {
+                                    accountSlotRepository.findById(firstDetail.getAccountSlotId()).ifPresent(slot -> {
+                                        dto.setAccountInfo(info + " | Profile: " + slot.getSlotName() + (slot.getPinCode() != null ? " (PIN: " + slot.getPinCode() + ")" : ""));
+                                    });
+                                } else {
+                                    dto.setAccountInfo(info);
+                                }
+                            });
+                        }
+                    }
+                    
                     return dto;
                 })
                 .collect(Collectors.toList());

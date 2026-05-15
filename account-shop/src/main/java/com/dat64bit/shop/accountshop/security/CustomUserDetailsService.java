@@ -25,18 +25,18 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Account account = accountRepository.findAll().stream()
-                .filter(a -> a.getUsername().equals(username))
-                .findFirst()
+        Account account = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
         Role role = roleRepository.findById(account.getRoleId())
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
+        String roleName = "ROLE_" + role.getRoleName().toUpperCase();
+        
         return new User(
                 account.getUsername(),
                 account.getPasswordHash(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.getRoleName().toUpperCase()))
+                Collections.singletonList(new SimpleGrantedAuthority(roleName))
         );
     }
 }

@@ -1,65 +1,147 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from 'react';
+import Header from '@/components/Header';
+import Hero from '@/components/Hero';
+import Footer from '@/components/Footer';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+interface Category { categoryId: number; categoryName: string; description: string; }
+interface Product { productId: number; productName: string; categoryName: string; }
+
+// SVG Components
+const ChevronRight = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+);
+const Package = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.6"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+);
 
 export default function Home() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const fetchData = async () => {
+      // Đảm bảo trạng thái loading được bật khi bắt đầu fetch
+      setLoading(true);
+      
+      try {
+        const [catRes, prodRes] = await Promise.all([
+          fetch('http://localhost:8080/api/public/catalog/categories', { 
+            signal: controller.signal,
+            cache: 'no-cache' 
+          }),
+          fetch('http://localhost:8080/api/public/catalog/products', { 
+            signal: controller.signal,
+            cache: 'no-cache'
+          }),
+        ]);
+
+        if (!isMounted) return;
+
+        const [catData, prodData] = await Promise.all([
+          catRes.ok ? catRes.json() : Promise.resolve([]),
+          prodRes.ok ? prodRes.json() : Promise.resolve([]),
+        ]);
+
+        if (isMounted) {
+          setCategories(catData);
+          setProducts(prodData);
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error("Home fetch error:", err);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+    <>
+      <Header />
+      <main style={{ background: 'var(--bg)', minHeight: '100vh', paddingBottom: 40 }}>
+        <div className="container" style={{ paddingTop: 16 }}>
+          {/* Breadcrumb */}
+          <nav className="breadcrumb">
+            <a href="/">Trang chủ</a>
+          </nav>
+
+          {/* Hero */}
+          <Hero categories={categories} products={products} loading={loading} />
+
+          {/* Product Section */}
+          <section>
+            <div className="section-header" style={{ marginTop: 40 }}>
+              <h2 className="section-title">
+                <Package size={20} /> Sản phẩm nổi bật
+              </h2>
+              <span className="section-link">
+                Xem tất cả <ChevronRight />
+              </span>
+            </div>
+
+            <div className="product-grid">
+              {loading ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="product-card">
+                    <div className="product-card-image animate-shimmer" />
+                    <div className="product-card-body">
+                      <div className="animate-shimmer" style={{ height: 12, width: '40%', borderRadius: 4 }} />
+                      <div className="animate-shimmer" style={{ height: 16, width: '90%', borderRadius: 4 }} />
+                      <div className="animate-shimmer" style={{ height: 20, width: '50%', borderRadius: 4, marginTop: 10 }} />
+                    </div>
+                  </div>
+                ))
+              ) : products.length > 0 ? (
+                products.map(p => (
+                  <div key={p.productId} className="product-card">
+                    <div className="product-card-image">
+                      <Package size={42} />
+                      <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.8)', padding: '4px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, color: 'var(--text-sub)' }}>
+                        CÓ SẴN
+                      </div>
+                    </div>
+                    <div className="product-card-body">
+                      <div className="product-card-cat">{p.categoryName}</div>
+                      <Link href={`/product/${p.productId}`} className="product-card-name">{p.productName}</Link>
+                      <div className="product-card-price">Liên hệ</div>
+                    </div>
+                    <div className="product-card-action">
+                      <Link href={`/product/${p.productId}`} className="btn-premium">
+                        Chi tiết sản phẩm
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', background: 'var(--bg-white)', borderRadius: 16, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                  <Package size={48} />
+                  <h3 style={{ marginTop: 16, color: 'var(--text-main)' }}>Chưa có sản phẩm nào</h3>
+                  <p style={{ marginTop: 8 }}>Vui lòng quay lại sau hoặc liên hệ hỗ trợ.</p>
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       </main>
-    </div>
+      <Footer />
+    </>
   );
 }

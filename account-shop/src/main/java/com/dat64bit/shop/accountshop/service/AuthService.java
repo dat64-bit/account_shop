@@ -47,9 +47,7 @@ public class AuthService {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = tokenProvider.generateToken(authentication);
-        Account account = accountRepository.findAll().stream()
-                .filter(a -> a.getUsername().equals(request.getUsername()))
-                .findFirst()
+        Account account = accountRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Role role = roleRepository.findById(account.getRoleId())
@@ -74,7 +72,7 @@ public class AuthService {
             throw new RuntimeException("Error: Email is already in use!");
         }
 
-        // Mặc định tạo Role Customer (giả sử roleId = 2 là Customer, cần tùy chỉnh theo DB)
+        // Mặc định tạo Role Customer
         Role role = roleRepository.findAll().stream()
                 .filter(r -> r.getRoleName().equalsIgnoreCase("Customer"))
                 .findFirst()
