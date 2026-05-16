@@ -30,6 +30,8 @@ public class AdminService {
     @Autowired private AccountItemRepository accountItemRepository;
     @Autowired private AccountSlotRepository accountSlotRepository;
     @Autowired private CategoryRepository categoryRepository;
+    @Autowired private SubscriptionPlanRepository subscriptionPlanRepository;
+    @Autowired private ProductSubscriptionRepository productSubscriptionRepository;
 
     public AdminDashboardDTO getDashboardStats() {
         AdminDashboardDTO dto = new AdminDashboardDTO();
@@ -237,5 +239,62 @@ public class AdminService {
         ticketRepository.save(ticket);
         
         // Có thể lưu thêm TicketReply với resolutionNotes ở đây.
+    }
+
+    // --- Subscription Plans ---
+    public List<SubscriptionPlan> getAllSubscriptionPlans() {
+        return subscriptionPlanRepository.findAll();
+    }
+
+    @Transactional
+    public SubscriptionPlan saveSubscriptionPlan(SubscriptionPlan plan) {
+        if (plan.getPlanId() != null) {
+            SubscriptionPlan existing = subscriptionPlanRepository.findById(plan.getPlanId())
+                    .orElseThrow(() -> new RuntimeException("Plan not found"));
+            existing.setPlanName(plan.getPlanName());
+            existing.setDurationDays(plan.getDurationDays());
+            existing.setIsActive(plan.getIsActive());
+            existing.setUpdatedAt(LocalDateTime.now());
+            return subscriptionPlanRepository.save(existing);
+        } else {
+            plan.setCreatedAt(LocalDateTime.now());
+            plan.setUpdatedAt(LocalDateTime.now());
+            if (plan.getIsActive() == null) plan.setIsActive(true);
+            return subscriptionPlanRepository.save(plan);
+        }
+    }
+
+    // --- Product Subscriptions (Pricing) ---
+    public List<ProductSubscription> getAllProductSubscriptions() {
+        return productSubscriptionRepository.findAll();
+    }
+
+    @Transactional
+    public ProductSubscription saveProductSubscription(ProductSubscription sub) {
+        if (sub.getProductSubscriptionId() != null) {
+            // Update existing
+            ProductSubscription existing = productSubscriptionRepository.findById(sub.getProductSubscriptionId())
+                    .orElseThrow(() -> new RuntimeException("Subscription not found"));
+            existing.setProductId(sub.getProductId());
+            existing.setPlanId(sub.getPlanId());
+            existing.setPrice(sub.getPrice());
+            existing.setIsActive(sub.getIsActive());
+            existing.setUpdatedAt(LocalDateTime.now());
+            return productSubscriptionRepository.save(existing);
+        } else {
+            // Create new
+            sub.setCreatedAt(LocalDateTime.now());
+            sub.setUpdatedAt(LocalDateTime.now());
+            if (sub.getIsActive() == null) sub.setIsActive(true);
+            return productSubscriptionRepository.save(sub);
+        }
+    }
+
+    @Transactional
+    public void toggleProductSubscriptionStatus(Integer id, Boolean isActive) {
+        ProductSubscription sub = productSubscriptionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Subscription not found"));
+        sub.setIsActive(isActive);
+        productSubscriptionRepository.save(sub);
     }
 }

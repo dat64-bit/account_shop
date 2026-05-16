@@ -1,5 +1,6 @@
 package com.dat64bit.shop.accountshop.controller;
 
+import com.dat64bit.shop.accountshop.entity.*;
 import com.dat64bit.shop.accountshop.dto.request.InventoryRequest;
 import com.dat64bit.shop.accountshop.service.AdminService;
 import com.dat64bit.shop.accountshop.service.TicketService;
@@ -40,7 +41,7 @@ public class AdminController {
     }
 
     @PostMapping("/products")
-    public ResponseEntity<?> createProduct(@RequestBody com.dat64bit.shop.accountshop.entity.Product product) {
+    public ResponseEntity<?> createProduct(@RequestBody Product product) {
         try {
             return ResponseEntity.ok(adminService.saveProduct(product));
         } catch (Exception e) {
@@ -49,7 +50,7 @@ public class AdminController {
     }
 
     @PutMapping("/products/{id}")
-    public ResponseEntity<?> updateProduct(@PathVariable Integer id, @RequestBody com.dat64bit.shop.accountshop.entity.Product product) {
+    public ResponseEntity<?> updateProduct(@PathVariable Integer id, @RequestBody Product product) {
         try {
             product.setProductId(id);
             return ResponseEntity.ok(adminService.saveProduct(product));
@@ -89,7 +90,7 @@ public class AdminController {
     }
 
     @PostMapping("/categories")
-    public ResponseEntity<?> createCategory(@RequestBody com.dat64bit.shop.accountshop.entity.Category category) {
+    public ResponseEntity<?> createCategory(@RequestBody Category category) {
         try {
             return ResponseEntity.ok(adminService.saveCategory(category));
         } catch (Exception e) {
@@ -137,6 +138,46 @@ public class AdminController {
         try {
             adminService.resolveTicket(id, notes, newStatusId);
             return ResponseEntity.ok("Ticket resolved successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- Subscription Plans ---
+    @GetMapping("/subscription-plans")
+    public ResponseEntity<?> getSubscriptionPlans() {
+        return ResponseEntity.ok(adminService.getAllSubscriptionPlans());
+    }
+
+    @PostMapping("/subscription-plans")
+    public ResponseEntity<?> saveSubscriptionPlan(@RequestBody SubscriptionPlan plan) {
+        try {
+            return ResponseEntity.ok(adminService.saveSubscriptionPlan(plan));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- Product Subscriptions (Pricing) ---
+    @GetMapping("/product-subscriptions")
+    public ResponseEntity<?> getProductSubscriptions() {
+        return ResponseEntity.ok(adminService.getAllProductSubscriptions());
+    }
+
+    @PostMapping("/product-subscriptions")
+    public ResponseEntity<?> saveProductSubscription(@RequestBody ProductSubscription sub) {
+        try {
+            return ResponseEntity.ok(adminService.saveProductSubscription(sub));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/product-subscriptions/{id}/status")
+    public ResponseEntity<?> toggleProductSubscriptionStatus(@PathVariable Integer id, @RequestParam Boolean isActive) {
+        try {
+            adminService.toggleProductSubscriptionStatus(id, isActive);
+            return ResponseEntity.ok("Status updated.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
