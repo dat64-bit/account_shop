@@ -6,7 +6,6 @@ import com.dat64bit.shop.accountshop.dto.response.ProductSubscriptionDTO;
 import com.dat64bit.shop.accountshop.entity.Category;
 import com.dat64bit.shop.accountshop.entity.Product;
 import com.dat64bit.shop.accountshop.entity.ProductSubscription;
-import com.dat64bit.shop.accountshop.entity.SubscriptionPlan;
 import com.dat64bit.shop.accountshop.repository.CategoryRepository;
 import com.dat64bit.shop.accountshop.repository.ProductRepository;
 import com.dat64bit.shop.accountshop.repository.ProductSubscriptionRepository;
@@ -77,10 +76,10 @@ public class CatalogService {
         dto.setIsContactSeller(product.getIsContactSeller());
         dto.setIsInputEmailRequired(product.getIsInputEmailRequired());
         dto.setProductStatusId(product.getProductStatusId());
-        
+
         categoryRepository.findById(product.getCategoryId())
                 .ifPresent(c -> dto.setCategoryName(c.getCategoryName()));
-                
+
         return dto;
     }
 
@@ -90,10 +89,10 @@ public class CatalogService {
         dto.setProductId(sub.getProductId());
         dto.setPlanId(sub.getPlanId());
         dto.setPrice(sub.getPrice());
-        
+
         planRepository.findById(sub.getPlanId())
                 .ifPresent(p -> dto.setPlanName(p.getPlanName()));
-                
+
         return dto;
     }
 }

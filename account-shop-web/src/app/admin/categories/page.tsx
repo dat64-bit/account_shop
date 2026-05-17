@@ -44,7 +44,7 @@ export default function AdminCategories() {
     const updatedCategory = { ...category, isActive: !category.isActive };
     try {
       const res = await fetch('http://localhost:8080/api/admin/categories', {
-        method: 'POST', 
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -119,26 +119,23 @@ export default function AdminCategories() {
                     </span>
                   </td>
                   <td className="admin-actions-cell">
-                    <div className="admin-table-actions">
-                      <button 
-                        className="btn-admin-action edit" 
-                        onClick={() => {
-                          setEditingCategory(cat);
-                          setCategoryForm({
-                            categoryName: cat.categoryName,
-                            description: cat.description,
-                            isActive: cat.isActive
-                          });
-                          setCategoryModalOpen(true);
-                        }}
-                      >Sửa</button>
-                      <button 
-                        className={`btn-admin-action ${cat.isActive ? 'lock' : 'edit'}`}
-                        onClick={() => handleToggleCategoryStatus(cat)}
-                      >
-                        {cat.isActive ? 'Tắt' : 'Bật'}
-                      </button>
-                    </div>
+                    <button
+                      className="btn-admin-action edit"
+                      onClick={() => {
+                        setEditingCategory(cat);
+                        setCategoryForm({
+                          categoryName: cat.categoryName,
+                          description: cat.description,
+                          isActive: cat.isActive
+                        });
+                        setCategoryModalOpen(true);
+                      }}>Sửa</button>
+                    <button
+                      className={`btn-admin-action ${cat.isActive ? 'lock' : 'edit'}`}
+                      onClick={() => handleToggleCategoryStatus(cat)}
+                    >
+                      {cat.isActive ? 'Tắt' : 'Bật'}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -157,11 +154,11 @@ export default function AdminCategories() {
             <form onSubmit={handleSaveCategory} className="modal-body">
               <div className="form-group">
                 <label>Tên danh mục</label>
-                <input type="text" className="form-input" value={categoryForm.categoryName} onChange={e => setCategoryForm({...categoryForm, categoryName: e.target.value})} required />
+                <input type="text" className="form-input" value={categoryForm.categoryName} onChange={e => setCategoryForm({ ...categoryForm, categoryName: e.target.value })} required />
               </div>
               <div className="form-group">
                 <label>Mô tả</label>
-                <textarea className="form-input" value={categoryForm.description} onChange={e => setCategoryForm({...categoryForm, description: e.target.value})} rows={3}></textarea>
+                <textarea className="form-input" value={categoryForm.description} onChange={e => setCategoryForm({ ...categoryForm, description: e.target.value })} rows={3}></textarea>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn-view-account" onClick={() => setCategoryModalOpen(false)}>Hủy</button>

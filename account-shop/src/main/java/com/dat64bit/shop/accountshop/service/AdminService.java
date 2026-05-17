@@ -20,27 +20,36 @@ import java.util.stream.Collectors;
 @Service
 public class AdminService {
 
-    @Autowired private AccountRepository accountRepository;
-    @Autowired private OrderRepository orderRepository;
-    @Autowired private OrderDetailRepository orderDetailRepository;
-    @Autowired private TransactionRepository transactionRepository;
-    @Autowired private TicketRepository ticketRepository;
-    @Autowired private RoleRepository roleRepository;
-    @Autowired private ProductRepository productRepository;
-    @Autowired private AccountItemRepository accountItemRepository;
-    @Autowired private AccountSlotRepository accountSlotRepository;
-    @Autowired private CategoryRepository categoryRepository;
-    @Autowired private SubscriptionPlanRepository subscriptionPlanRepository;
-    @Autowired private ProductSubscriptionRepository productSubscriptionRepository;
+    @Autowired
+    private AccountRepository accountRepository;
+    @Autowired
+    private OrderRepository orderRepository;
+    @Autowired
+    private OrderDetailRepository orderDetailRepository;
+    @Autowired
+    private TicketRepository ticketRepository;
+    @Autowired
+    private RoleRepository roleRepository;
+    @Autowired
+    private ProductRepository productRepository;
+    @Autowired
+    private AccountItemRepository accountItemRepository;
+    @Autowired
+    private AccountSlotRepository accountSlotRepository;
+    @Autowired
+    private CategoryRepository categoryRepository;
+    @Autowired
+    private SubscriptionPlanRepository subscriptionPlanRepository;
+    @Autowired
+    private ProductSubscriptionRepository productSubscriptionRepository;
 
     public AdminDashboardDTO getDashboardStats() {
         AdminDashboardDTO dto = new AdminDashboardDTO();
-        
+
         dto.setTotalUsers(accountRepository.count());
-        
-        LocalDateTime now = LocalDateTime.now();
+
         LocalDateTime startOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
-        
+
         // Stats Today
         long ordersToday = orderRepository.findAll().stream()
                 .filter(o -> o.getCreatedAt() != null && o.getCreatedAt().isAfter(startOfDay))
@@ -72,14 +81,16 @@ public class AdminService {
             LocalDateTime end = LocalDateTime.of(date, LocalTime.MAX);
 
             BigDecimal dayRevenue = allDetails.stream()
-                    .filter(d -> d.getCreatedAt() != null && d.getCreatedAt().isAfter(start) && d.getCreatedAt().isBefore(end))
+                    .filter(d -> d.getCreatedAt() != null && d.getCreatedAt().isAfter(start)
+                            && d.getCreatedAt().isBefore(end))
                     .map(OrderDetail::getPrice)
                     .filter(java.util.Objects::nonNull)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             revenueTrend.add(dayRevenue);
 
             long dayOrders = allOrders.stream()
-                    .filter(o -> o.getCreatedAt() != null && o.getCreatedAt().isAfter(start) && o.getCreatedAt().isBefore(end))
+                    .filter(o -> o.getCreatedAt() != null && o.getCreatedAt().isAfter(start)
+                            && o.getCreatedAt().isBefore(end))
                     .count();
             orderTrend.add(dayOrders);
         }
@@ -90,8 +101,10 @@ public class AdminService {
         // (Simplified logic: taking top products from the database)
         List<Product> products = productRepository.findAll();
         dto.setTopProductNames(products.stream().limit(6).map(Product::getProductName).collect(Collectors.toList()));
-        dto.setTopProductSales(products.stream().limit(6).map(p -> (long) (Math.random() * 100)).collect(Collectors.toList()));
-        dto.setTopProductPreviousSales(products.stream().limit(6).map(p -> (long) (Math.random() * 100)).collect(Collectors.toList()));
+        dto.setTopProductSales(
+                products.stream().limit(6).map(p -> (long) (Math.random() * 100)).collect(Collectors.toList()));
+        dto.setTopProductPreviousSales(
+                products.stream().limit(6).map(p -> (long) (Math.random() * 100)).collect(Collectors.toList()));
 
         return dto;
     }
@@ -106,7 +119,7 @@ public class AdminService {
             dto.setBalance(acc.getBalance());
             dto.setAccountStatusId(acc.getAccountStatusId());
             dto.setCreatedAt(acc.getCreatedAt());
-            
+
             roleRepository.findById(acc.getRoleId()).ifPresent(r -> dto.setRoleName(r.getRoleName()));
             return dto;
         }).collect(Collectors.toList());
@@ -124,7 +137,8 @@ public class AdminService {
     public Category saveCategory(Category category) {
         if (category.getCategoryId() == null) {
             category.setCreatedAt(LocalDateTime.now());
-            if (category.getIsActive() == null) category.setIsActive(true);
+            if (category.getIsActive() == null)
+                category.setIsActive(true);
         }
         category.setUpdatedAt(LocalDateTime.now());
         return categoryRepository.save(category);
@@ -138,7 +152,8 @@ public class AdminService {
     public Product saveProduct(Product product) {
         if (product.getProductId() == null) {
             product.setCreatedAt(LocalDateTime.now());
-            if (product.getProductStatusId() == null) product.setProductStatusId(1);
+            if (product.getProductStatusId() == null)
+                product.setProductStatusId(1);
         }
         product.setUpdatedAt(LocalDateTime.now());
         return productRepository.save(product);
@@ -170,7 +185,8 @@ public class AdminService {
                 dto.setProductName(p.getProductName());
             });
 
-            dto.setStatusName(item.getItemStatusId() == 1 ? "Sẵn sàng" : item.getItemStatusId() == 2 ? "Đã bán" : "Lỗi");
+            dto.setStatusName(
+                    item.getItemStatusId() == 1 ? "Sẵn sàng" : item.getItemStatusId() == 2 ? "Đã bán" : "Lỗi");
             return dto;
         }).collect(Collectors.toList());
     }
@@ -191,7 +207,7 @@ public class AdminService {
         item.setAccountPassword(request.getPassword());
         item.setItemStatusId(1); // ACTIVE / AVAILABLE
         item.setCreatedAt(LocalDateTime.now());
-        
+
         item = accountItemRepository.save(item);
 
         if (request.getMaxSlots() != null && request.getMaxSlots() > 1) {
@@ -211,7 +227,7 @@ public class AdminService {
     public void replaceAccountForOrder(Integer orderDetailId, Integer newAccountItemId) {
         OrderDetail detail = orderDetailRepository.findById(orderDetailId)
                 .orElseThrow(() -> new RuntimeException("Order detail not found"));
-        
+
         // Thu hồi account cũ (đánh dấu lỗi)
         if (detail.getAccountItemId() != null) {
             accountItemRepository.findById(detail.getAccountItemId()).ifPresent(oldItem -> {
@@ -223,7 +239,7 @@ public class AdminService {
         // Gán account mới
         detail.setAccountItemId(newAccountItemId);
         orderDetailRepository.save(detail);
-        
+
         // Đánh dấu account mới là Đã bán (2)
         accountItemRepository.findById(newAccountItemId).ifPresent(newItem -> {
             newItem.setItemStatusId(2); // 2 = IN USE
@@ -237,7 +253,7 @@ public class AdminService {
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
         ticket.setTicketStatusId(newStatusId);
         ticketRepository.save(ticket);
-        
+
         // Có thể lưu thêm TicketReply với resolutionNotes ở đây.
     }
 
@@ -259,7 +275,8 @@ public class AdminService {
         } else {
             plan.setCreatedAt(LocalDateTime.now());
             plan.setUpdatedAt(LocalDateTime.now());
-            if (plan.getIsActive() == null) plan.setIsActive(true);
+            if (plan.getIsActive() == null)
+                plan.setIsActive(true);
             return subscriptionPlanRepository.save(plan);
         }
     }
@@ -285,7 +302,8 @@ public class AdminService {
             // Create new
             sub.setCreatedAt(LocalDateTime.now());
             sub.setUpdatedAt(LocalDateTime.now());
-            if (sub.getIsActive() == null) sub.setIsActive(true);
+            if (sub.getIsActive() == null)
+                sub.setIsActive(true);
             return productSubscriptionRepository.save(sub);
         }
     }

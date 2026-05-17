@@ -1,7 +1,6 @@
 package com.dat64bit.shop.accountshop.util;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,16 +17,17 @@ public class JwtUtils {
     private String secret;
     @Value("${jwt.expiration}")
     private long jwtExpiration;
-    public String getJwtToken(String username,String role){
+
+    public String getJwtToken(String username, String role) {
         // list playload
-        Map<String,Object> claims = new HashMap<>();
-        //put role in playload
-        claims.put("role",role);
-        //return jwt token
-        return createToken(claims,username);
+        Map<String, Object> claims = new HashMap<>();
+        // put role in playload
+        claims.put("role", role);
+        // return jwt token
+        return createToken(claims, username);
     }
 
-    private String createToken (Map<String, Object> claims,String username) {
+    private String createToken(Map<String, Object> claims, String username) {
         return Jwts.builder()
                 .claims(claims)
                 .subject(username)

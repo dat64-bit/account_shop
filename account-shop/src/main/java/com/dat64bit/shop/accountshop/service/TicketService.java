@@ -1,6 +1,5 @@
 package com.dat64bit.shop.accountshop.service;
 
-import com.dat64bit.shop.accountshop.dto.request.TicketReplyRequest;
 import com.dat64bit.shop.accountshop.dto.request.TicketRequest;
 import com.dat64bit.shop.accountshop.entity.Ticket;
 import com.dat64bit.shop.accountshop.entity.TicketReply;
@@ -30,7 +29,7 @@ public class TicketService {
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
-        
+
         ticket = ticketRepository.save(ticket);
 
         if (request.getMessage() != null && !request.getMessage().isEmpty()) {
@@ -60,16 +59,16 @@ public class TicketService {
     @Transactional
     public void addReply(Integer ticketId, Integer senderId, String message) {
         Ticket ticket = getTicketById(ticketId);
-        
+
         TicketReply reply = TicketReply.builder()
                 .ticketId(ticketId)
                 .senderId(senderId)
                 .message(message)
                 .createdAt(LocalDateTime.now())
                 .build();
-        
+
         ticketReplyRepository.save(reply);
-        
+
         ticket.setUpdatedAt(LocalDateTime.now());
         ticketRepository.save(ticket);
     }
