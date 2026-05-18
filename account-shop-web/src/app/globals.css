@@ -931,11 +931,12 @@ a {
 .input-wrapper input {
   flex: 1;
   padding: 12px 14px;
-  border: none;
-  outline: none;
+  border: none !important;
+  outline: none !important;
   font-size: 14px;
   color: var(--text-main);
-  background: transparent;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .input-wrapper .input-icon + input {
