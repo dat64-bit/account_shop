@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import AuthModal from './AuthModal';
-import Image from 'next/image';
 import Link from 'next/link';
 
 // SVG Components
@@ -92,7 +91,7 @@ export default function Header() {
             {user ? (
               <>
                 <div className="user-nav-group">
-                  <Link href="/dashboard" className="user-greeting" title="Vào Dashboard cá nhân">
+                  <Link href={user.role === 'ROLE_ADMIN' ? '/admin' : '/dashboard'} className="user-greeting" title={user.role === 'ROLE_ADMIN' ? 'Vào trang quản trị' : 'Vào Dashboard cá nhân'}>
                     <UserIcon size={16} /> <span>{user.sub}</span>
                   </Link>
                   {user.role === 'ROLE_ADMIN' && (
