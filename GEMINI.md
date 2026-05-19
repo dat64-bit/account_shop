@@ -14,6 +14,8 @@ This repository contains two main subsystems:
 
 ## 🎨 UI/UX Design Conventions (Frontend)
 - **Premium Aesthetics**: Maintain a professional, high-quality "Dashboard" look. Use smooth micro-animations (`animate-in`, `zoom-in`, `slide-in-from-right`), appropriate shadows, and clear typography.
+- **CSS Standardization (See ADR-004)**: Avoid inline styles and ad-hoc utility classes. All admin table containers, tables, badges, and action buttons must use standardized `.admin-*` classes defined in `globals.css`.
+- **Table Cell & Row Alignment (See ADR-004)**: Never apply `display: flex` directly to a `td` cell wrapper as it breaks vertical row alignment. Wrap action buttons inside a `.admin-table-actions` container inside the cell instead.
 - **Modals & Toasts**: Do not use native browser `alert()` or `confirm()`. Use the custom `admin-modal-overlay` and `admin-toast-container` components (See ADR-003).
 - **Z-Index & Overflows (See ADR-003)**: Always ensure fixed elements (like Toasts) are placed at the root level of the component (e.g., wrapping the return in a React Fragment `<>...</>`) to prevent clipping by parent containers that use `overflow: hidden` or CSS transforms.
 
