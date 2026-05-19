@@ -90,3 +90,51 @@ UPDATE account SET password_hash = '$2a$10$...' WHERE username = 'admin01';
 ## References
 - [Spring Security 6 Migration Guide](https://docs.spring.io/spring-security/reference/migration/index.html)
 - Session debug: f4e589d9-4804-454a-8c73-74bfc076ff4c
+
+---
+
+## Addendum: JWT phải chứa claim `role` (2026-05-19)
+
+### Vấn đề
+Frontend dùng `jwtDecode()` để đọc thông tin user từ token (bao gồm `role`). Ban đầu `JwtTokenProvider.generateToken()` chỉ lưu `subject` (username) và thời gian — **không có claim `role`** → `user.role` luôn là `undefined` ở frontend → mọi điều kiện role-check đều trả về `false`.
+
+**Triệu chứng:** Header luôn dẫn về `/dashboard` dù đăng nhập bằng admin.
+
+### Fix
+Trích xuất role từ `GrantedAuthority` và embed vào JWT claim:
+
+```java
+// JwtTokenProvider.java
+public String generateToken(Authentication authentication) {
+    UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
+    Date now = new Date();
+    Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
+
+    String role = userPrincipal.getAuthorities().stream()
+            .findFirst()
+            .map(a -> a.getAuthority())
+            .orElse("ROLE_CUSTOMER");
+
+    return Jwts.builder()
+            .subject(userPrincipal.getUsername())
+            .claim("role", role)          // ← BẮT BUỘC
+            .issuedAt(new Date())
+            .expiration(expiryDate)
+            .signWith(getSigningKey())
+            .compact();
+}
+```
+
+### Rule Frontend
+Frontend check role phải dùng **đúng giá trị** Spring Security gán (có prefix `ROLE_`):
+```tsx
+// Header.tsx — ĐÚNG
+user.role === 'ROLE_ADMIN'
+
+// SAI — Spring Security luôn thêm prefix ROLE_
+user.role === 'ADMIN'
+```
+
+### Lưu ý quan trọng
+- Sau khi sửa `JwtTokenProvider.java`, phải **restart backend hoàn toàn** (không đủ với hot reload).
+- Sau khi restart, user phải **đăng xuất và đăng nhập lại** để nhận token mới có claim `role`. Token cũ không có `role` sẽ vẫn pass authenticate nhưng frontend sẽ hiểu sai role.

@@ -20,6 +20,7 @@ This repository contains two main subsystems:
 - **In-Page Dashboard Navigation (See ADR-005)**: Replace large overlay modals for complex edit/view tasks with a local view state machine (`'list' | 'details' | 'form'`), rendering details and workspaces directly in-page.
 - **Modals & Toasts**: Do not use native browser `alert()` or `confirm()`. Use the custom `admin-modal-overlay` and `admin-toast-container` components (See ADR-003).
 - **Z-Index & Overflows (See ADR-003)**: Always ensure fixed elements (like Toasts) are placed at the root level of the component (e.g., wrapping the return in a React Fragment `<>...</>`) to prevent clipping by parent containers that use `overflow: hidden` or CSS transforms.
+- **Role-Based Routing**: Frontend role check phải dùng giá trị **có prefix `ROLE_`** (vì Spring Security thêm tự động). Ví dụ: `user.role === 'ROLE_ADMIN'`, **không phải** `'ADMIN'`. Admin được điều hướng đến `/admin`, Customer đến `/dashboard`.
 
 ## ⚙️ Backend & API Conventions
 - **Role-Based API Segregation (See ADR-002)**:
@@ -29,6 +30,7 @@ This repository contains two main subsystems:
 - **Security — JwtAuthFilter (See ADR-007)**: `JwtAuthFilter` phải là `@Bean` tường minh trong `SecurityConfig`, **không được dùng `@Component`**. Nếu dùng `@Component`, Spring Boot sẽ tự đăng ký filter như một servlet filter thông thường ngoài security chain, gây ra việc `SecurityContext` bị reset → 401 Unauthorized dù token hợp lệ.
 - **Security — DaoAuthenticationProvider (See ADR-007)**: Phải khai báo tường minh `DaoAuthenticationProvider` bean trong `SecurityConfig` và wire vào `filterChain` bằng `.authenticationProvider(...)`. Nếu không, `AuthenticationManager` mặc định của Spring sẽ không biết dùng `CustomUserDetailsService` hay `BCryptPasswordEncoder` → "Bad credentials".
 - **Security — Password Hash**: Mọi password trong DB phải được encode bằng BCrypt. Dùng `BCryptPasswordEncoder.encode()` để generate hash khi seed data. Không bao giờ lưu plaintext.
+- **Security — JWT Role Claim (See ADR-007 Addendum)**: `JwtTokenProvider.generateToken()` **phải embed claim `role`** (lấy từ `getAuthorities()`) vào token. Nếu không, `user.role` ở frontend luôn là `undefined`, mọi role-check đều fail. Sau khi sửa file này phải **restart backend hoàn toàn** và user phải **đăng xuất + đăng nhập lại** để nhận token mới.
 - **Responses**: Controllers should return standardized DTOs (e.g., `UserDTO`, `AdminDashboardDTO`).
 - **Validation**: Validate external input at controller boundaries before passing to services.
 
