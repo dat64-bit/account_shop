@@ -3,6 +3,7 @@ package com.dat64bit.shop.accountshop.service;
 import com.dat64bit.shop.accountshop.dto.response.AdminDashboardDTO;
 import com.dat64bit.shop.accountshop.dto.response.AdminInventoryDTO;
 import com.dat64bit.shop.accountshop.dto.response.UserDTO;
+import com.dat64bit.shop.accountshop.dto.response.ProductDTO;
 import com.dat64bit.shop.accountshop.dto.request.InventoryRequest;
 import com.dat64bit.shop.accountshop.entity.*;
 import com.dat64bit.shop.accountshop.repository.*;
@@ -314,5 +315,24 @@ public class AdminService {
                 .orElseThrow(() -> new RuntimeException("Subscription not found"));
         sub.setIsActive(isActive);
         productSubscriptionRepository.save(sub);
+    }
+
+    public List<ProductDTO> getAllProducts() {
+        return productRepository.findAll().stream().map(product -> {
+            ProductDTO dto = new ProductDTO();
+            dto.setProductId(product.getProductId());
+            dto.setCategoryId(product.getCategoryId());
+            dto.setProductName(product.getProductName());
+            dto.setDescription(product.getDescription());
+            dto.setImageUrl(product.getImageUrl());
+            dto.setIsContactSeller(product.getIsContactSeller());
+            dto.setIsInputEmailRequired(product.getIsInputEmailRequired());
+            dto.setProductStatusId(product.getProductStatusId());
+
+            categoryRepository.findById(product.getCategoryId())
+                    .ifPresent(c -> dto.setCategoryName(c.getCategoryName()));
+
+            return dto;
+        }).collect(Collectors.toList());
     }
 }

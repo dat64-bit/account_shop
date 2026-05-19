@@ -2952,15 +2952,6 @@ a {
   background: #e2e8f0;
 }
 
-.admin-image-preview {
-  margin-top: 12px;
-  padding: 12px;
-  border-radius: 16px;
-  border: 2px solid #f1f5f9;
-  background: #f8fafc;
-  overflow: hidden;
-}
-
 .admin-image-empty {
   padding: 40px;
   border: 2px dashed #e2e8f0;
@@ -2971,6 +2962,72 @@ a {
   gap: 12px;
   color: var(--text-muted);
   background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.admin-image-empty:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+.admin-image-empty.dragging {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  transform: scale(0.98);
+}
+
+.admin-image-preview {
+  position: relative;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 2px solid #f1f5f9;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.admin-image-preview:hover .btn-remove-image {
+  opacity: 1;
+}
+
+.btn-remove-image {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  opacity: 0;
+  z-index: 10;
+}
+
+.btn-remove-image:hover {
+  background: rgb(220, 38, 38);
+  transform: scale(1.1);
+}
+
+.admin-upload-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Modal Premium Styles */

@@ -2,6 +2,7 @@ package com.dat64bit.shop.accountshop.controller;
 
 import com.dat64bit.shop.accountshop.entity.*;
 import com.dat64bit.shop.accountshop.dto.request.InventoryRequest;
+import com.dat64bit.shop.accountshop.dto.response.ProductDTO;
 import com.dat64bit.shop.accountshop.service.AdminService;
 import com.dat64bit.shop.accountshop.service.TicketService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,11 @@ public class AdminController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @GetMapping("/products")
+    public ResponseEntity<?> getAllProducts() {
+        return ResponseEntity.ok(adminService.getAllProducts());
     }
 
     @PostMapping("/products")

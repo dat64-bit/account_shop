@@ -35,6 +35,10 @@ export default function AdminProducts() {
     productStatusId: 1
   });
 
+  // Image Upload State
+  const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+
   // Product Details & Plans Management
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [productPlans, setProductPlans] = useState<any[]>([]);
@@ -67,7 +71,7 @@ export default function AdminProducts() {
       const catRes = await fetch('http://localhost:8080/api/admin/categories', { headers });
       if (catRes.ok) setCategories(await catRes.json());
 
-      const productsRes = await fetch('http://localhost:8080/api/public/catalog/products');
+      const productsRes = await fetch('http://localhost:8080/api/admin/products', { headers });
       if (productsRes.ok) {
         const productsData = await productsRes.json();
         setProducts(Array.isArray(productsData) ? productsData : []);
@@ -148,6 +152,71 @@ export default function AdminProducts() {
       });
     }
     setView('form');
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      await uploadImageFile(file);
+    }
+  };
+
+  const handleChangeFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      await uploadImageFile(file);
+    }
+  };
+
+  const uploadImageFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      showToast('error', 'Chỉ chấp nhận các file định dạng hình ảnh!');
+      return;
+    }
+
+    setUploading(true);
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('http://localhost:8080/api/admin/files/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setProductForm(prev => ({ ...prev, imageUrl: data.url }));
+        showToast('success', 'Đăng tải hình ảnh thành công!');
+      } else {
+        const errorText = await res.text();
+        showToast('error', errorText || 'Có lỗi xảy ra khi tải ảnh lên.');
+      }
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      showToast('error', 'Lỗi kết nối khi tải ảnh.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleToggleProductStatus = async (id: number, currentStatus: number) => {
@@ -247,15 +316,15 @@ export default function AdminProducts() {
     <div className="space-y-6">
       {/* 1. VIEW: LIST */}
       {view === 'list' && (
-        <div className="content-card animate-in">
-          <div className="card-header">
+        <div className="admin-table-container animate-in">
+          <div className="card-header border-b border-slate-100">
             <h2 className="card-title">Danh sách sản phẩm</h2>
             <button className="btn-primary" onClick={() => handleOpenForm()}>
               <Plus /> Thêm sản phẩm
             </button>
           </div>
           <div className="table-responsive">
-            <table className="dashboard-table">
+            <table className="admin-table">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -269,19 +338,29 @@ export default function AdminProducts() {
                 {products.map(p => (
                   <tr key={p.productId}>
                     <td>#{p.productId}</td>
-                    <td><img src={p.imageUrl} alt={p.productName} style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover' }} /></td>
-                    <td><strong>{p.productName}</strong></td>
                     <td>
-                      <span className={`status-badge ${p.productStatusId === 1 ? 'completed' : 'open'}`}>
-                        {p.productStatusId === 1 ? 'Kinh doanh' : 'Ngừng bán'}
+                      {p.imageUrl ? (
+                        <img src={p.imageUrl} alt={p.productName} style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: 40, height: 40, borderRadius: 4, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                          <Plus />
+                        </div>
+                      )}
+                    </td>
+                    <td className="admin-text-bold">{p.productName}</td>
+                    <td>
+                      <span className={`admin-badge ${p.productStatusId === 1 ? 'success' : 'danger'}`}>
+                        {p.productStatusId === 1 ? 'Kinh doanh' : 'Tạm dừng'}
                       </span>
                     </td>
-                    <td>
-                      <div className="flex gap-2">
-                        <button className="btn-view-account" onClick={() => handleOpenDetails(p)}>Chi tiết</button>
-                        <button className="btn-view-account" style={{ background: '#f8fafc' }} onClick={() => handleOpenForm(p)}>Sửa</button>
-                        <button className="btn-view-account" style={{ background: '#f1f5f9', color: '#64748b' }} onClick={() => handleToggleProductStatus(p.productId, p.productStatusId)}>
-                          {p.productStatusId === 1 ? 'Dừng' : 'Bán'}
+                    <td className="admin-actions-cell">
+                      <div className="admin-table-actions">
+                        <button className="btn-admin-action view" onClick={() => handleOpenDetails(p)}>Chi tiết</button>
+                        <button 
+                          className={`btn-admin-action ${p.productStatusId === 1 ? 'lock' : 'edit'}`} 
+                          onClick={() => handleToggleProductStatus(p.productId, p.productStatusId)}
+                        >
+                          {p.productStatusId === 1 ? 'Dừng' : 'Bán lại'}
                         </button>
                       </div>
                     </td>
@@ -440,7 +519,53 @@ export default function AdminProducts() {
                     </div>
                   </div>
                   <div className="admin-form-group">
-                    <label className="admin-label">Link ảnh sản phẩm</label>
+                    <label className="admin-label">Hình ảnh sản phẩm</label>
+                    
+                    {uploading ? (
+                      <div className="admin-image-empty">
+                        <div className="admin-upload-spinner"></div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Đang tải ảnh lên...</span>
+                      </div>
+                    ) : productForm.imageUrl ? (
+                      <div className="admin-image-preview group">
+                        <img
+                          src={productForm.imageUrl}
+                          alt="Preview"
+                          className="w-full h-auto rounded-xl object-contain max-h-48 transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <button
+                          type="button"
+                          className="btn-remove-image"
+                          onClick={() => setProductForm(prev => ({ ...prev, imageUrl: '' }))}
+                          title="Xóa hình ảnh"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        className={`admin-image-empty ${dragActive ? 'dragging' : ''}`}
+                        onDragEnter={handleDrag}
+                        onDragOver={handleDrag}
+                        onDragLeave={handleDrag}
+                        onDrop={handleDrop}
+                        onClick={() => document.getElementById('product-image-upload')?.click()}
+                      >
+                        <input
+                          type="file"
+                          id="product-image-upload"
+                          style={{ display: 'none' }}
+                          accept="image/*"
+                          onChange={handleChangeFile}
+                        />
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-center">Kéo thả ảnh hoặc click để chọn</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Hoặc nhập link ảnh trực tiếp</label>
                     <input
                       type="text"
                       className="admin-input-premium"
@@ -449,20 +574,6 @@ export default function AdminProducts() {
                       onChange={e => setProductForm({ ...productForm, imageUrl: e.target.value })}
                     />
                   </div>
-                  {productForm.imageUrl ? (
-                    <div className="admin-image-preview group">
-                      <img
-                        src={productForm.imageUrl}
-                        alt="Preview"
-                        className="w-full h-auto rounded-xl object-contain max-h-48 transition-transform duration-500 group-hover:scale-105"
-                      />
-                    </div>
-                  ) : (
-                    <div className="admin-image-empty">
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                      <span className="text-[11px] font-bold uppercase tracking-wider">Chưa có hình ảnh</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
