@@ -11,6 +11,7 @@ interface Product {
   productName: string;
   categoryName: string;
   description: string;
+  imageUrl?: string;
 }
 
 // SVG Components
@@ -51,10 +52,12 @@ export default function ProductDetail() {
 
   if (loading) return <div className="loading-screen">Đang tải chi tiết sản phẩm...</div>;
 
-  const p = product || {
+  const p: Product = product || {
+    productId: Number(id),
     productName: 'Sản phẩm mẫu',
     categoryName: 'Danh mục',
     description: 'Mô tả sản phẩm đang được cập nhật. Đây là bản xem trước giao diện.',
+    imageUrl: ''
   };
 
   return (
@@ -74,14 +77,28 @@ export default function ProductDetail() {
           <div className="product-main-grid">
             {/* Left: Image Gallery */}
             <div className="product-gallery">
-              <div className="main-image">
-                <Package size={80} />
-                <span>Ảnh sản phẩm {p.productName}</span>
+              <div className="main-image" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+                {p.imageUrl ? (
+                  <img 
+                    src={p.imageUrl} 
+                    alt={p.productName} 
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', maxHeight: '350px' }} 
+                  />
+                ) : (
+                  <>
+                    <Package size={80} />
+                    <span>Ảnh sản phẩm {p.productName}</span>
+                  </>
+                )}
               </div>
               <div className="thumbnail-list">
-                <div className="thumb active"><Package size={20} /></div>
-                <div className="thumb"><Package size={20} /></div>
-                <div className="thumb"><Package size={20} /></div>
+                <div className="thumb active" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {p.imageUrl ? (
+                    <img src={p.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <Package size={20} />
+                  )}
+                </div>
               </div>
             </div>
 

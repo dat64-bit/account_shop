@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 interface Category { categoryId: number; categoryName: string; description: string; }
-interface Product { productId: number; productName: string; categoryName: string; }
+interface Product { productId: number; productName: string; categoryName: string; imageUrl?: string; }
 
 // SVG Components
 const ChevronRight = () => (
@@ -112,8 +112,16 @@ export default function Home() {
               ) : products.length > 0 ? (
                 products.map(p => (
                   <div key={p.productId} className="product-card">
-                    <div className="product-card-image">
-                      <Package size={42} />
+                    <div className="product-card-image" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+                      {p.imageUrl ? (
+                        <img 
+                          src={p.imageUrl} 
+                          alt={p.productName} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      ) : (
+                        <Package size={42} />
+                      )}
                       <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.8)', padding: '4px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, color: 'var(--text-sub)' }}>
                         CÓ SẴN
                       </div>
