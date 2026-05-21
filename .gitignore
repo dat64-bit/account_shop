@@ -40,8 +40,6 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-# Ignore config files that contain passwords
-**/src/main/resources/application.properties
 
 ### STS ###
 .apt_generated
