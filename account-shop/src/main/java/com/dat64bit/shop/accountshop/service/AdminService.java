@@ -4,6 +4,8 @@ import com.dat64bit.shop.accountshop.dto.response.AdminDashboardDTO;
 import com.dat64bit.shop.accountshop.dto.response.AdminInventoryDTO;
 import com.dat64bit.shop.accountshop.dto.response.UserDTO;
 import com.dat64bit.shop.accountshop.dto.response.ProductDTO;
+import com.dat64bit.shop.accountshop.dto.response.PagedResponse;
+import com.dat64bit.shop.accountshop.dto.response.TransactionDTO;
 import com.dat64bit.shop.accountshop.dto.request.InventoryRequest;
 import com.dat64bit.shop.accountshop.entity.*;
 import com.dat64bit.shop.accountshop.repository.*;
@@ -43,6 +45,14 @@ public class AdminService {
     private SubscriptionPlanRepository subscriptionPlanRepository;
     @Autowired
     private ProductSubscriptionRepository productSubscriptionRepository;
+    @Autowired
+    private TransactionRepository transactionRepository;
+    @Autowired
+    private TransactionStatusRepository transactionStatusRepository;
+    @Autowired
+    private PaymentMethodRepository paymentMethodRepository;
+    @Autowired
+    private TransactionTypeRepository transactionTypeRepository;
 
     public AdminDashboardDTO getDashboardStats() {
         AdminDashboardDTO dto = new AdminDashboardDTO();
@@ -334,5 +344,167 @@ public class AdminService {
 
             return dto;
         }).collect(Collectors.toList());
+    }
+
+    public PagedResponse<UserDTO> getUsersPaged(Integer statusId, Integer roleId, String keyword, Integer lastId, int limit) {
+        org.springframework.data.domain.PageRequest pageable = org.springframework.data.domain.PageRequest.of(0, limit + 1);
+        List<Integer> ids = accountRepository.findIdsPaged(statusId, roleId, keyword, lastId, pageable);
+        boolean hasMore = ids.size() > limit;
+        List<Integer> queryIds = hasMore ? ids.subList(0, limit) : ids;
+
+        List<UserDTO> content = new java.util.ArrayList<>();
+        if (!queryIds.isEmpty()) {
+            List<Account> accounts = accountRepository.findByAccountIdInOrderByAccountIdDesc(queryIds);
+            java.util.Map<Integer, String> roleMap = roleRepository.findAll().stream()
+                    .collect(Collectors.toMap(Role::getRoleId, Role::getRoleName, (a, b) -> a));
+            content = accounts.stream().map(acc -> {
+                UserDTO dto = new UserDTO();
+                dto.setAccountId(acc.getAccountId());
+                dto.setUsername(acc.getUsername());
+                dto.setEmail(acc.getEmail());
+                dto.setFullName(acc.getFullName());
+                dto.setBalance(acc.getBalance());
+                dto.setAccountStatusId(acc.getAccountStatusId());
+                dto.setCreatedAt(acc.getCreatedAt());
+                dto.setRoleName(roleMap.getOrDefault(acc.getRoleId(), "UNKNOWN"));
+                return dto;
+            }).collect(Collectors.toList());
+        }
+        return new PagedResponse<>(content, hasMore);
+    }
+
+    public PagedResponse<ProductDTO> getProductsPaged(Integer categoryId, Integer statusId, String keyword, Integer lastId, int limit) {
+        org.springframework.data.domain.PageRequest pageable = org.springframework.data.domain.PageRequest.of(0, limit + 1);
+        List<Integer> ids = productRepository.findIdsPaged(categoryId, statusId, keyword, lastId, pageable);
+        boolean hasMore = ids.size() > limit;
+        List<Integer> queryIds = hasMore ? ids.subList(0, limit) : ids;
+
+        List<ProductDTO> content = new java.util.ArrayList<>();
+        if (!queryIds.isEmpty()) {
+            List<Product> products = productRepository.findByProductIdInOrderByProductIdDesc(queryIds);
+            java.util.Map<Integer, String> categoryMap = categoryRepository.findAll().stream()
+                    .collect(Collectors.toMap(Category::getCategoryId, Category::getCategoryName, (a, b) -> a));
+            content = products.stream().map(product -> {
+                ProductDTO dto = new ProductDTO();
+                dto.setProductId(product.getProductId());
+                dto.setCategoryId(product.getCategoryId());
+                dto.setProductName(product.getProductName());
+                dto.setDescription(product.getDescription());
+                dto.setImageUrl(product.getImageUrl());
+                dto.setIsContactSeller(product.getIsContactSeller());
+                dto.setIsInputEmailRequired(product.getIsInputEmailRequired());
+                dto.setProductStatusId(product.getProductStatusId());
+                dto.setCategoryName(categoryMap.getOrDefault(product.getCategoryId(), "UNKNOWN"));
+                return dto;
+            }).collect(Collectors.toList());
+        }
+        return new PagedResponse<>(content, hasMore);
+    }
+
+    public PagedResponse<Category> getCategoriesPaged(Boolean isActive, String keyword, Integer lastId, int limit) {
+        org.springframework.data.domain.PageRequest pageable = org.springframework.data.domain.PageRequest.of(0, limit + 1);
+        List<Integer> ids = categoryRepository.findIdsPaged(isActive, keyword, lastId, pageable);
+        boolean hasMore = ids.size() > limit;
+        List<Integer> queryIds = hasMore ? ids.subList(0, limit) : ids;
+
+        List<Category> content = new java.util.ArrayList<>();
+        if (!queryIds.isEmpty()) {
+            content = categoryRepository.findByCategoryIdInOrderByCategoryIdDesc(queryIds);
+        }
+        return new PagedResponse<>(content, hasMore);
+    }
+
+    public PagedResponse<AdminInventoryDTO> getInventoryPaged(Integer productId, Integer itemStatusId, String keyword, Integer lastId, int limit) {
+        org.springframework.data.domain.PageRequest pageable = org.springframework.data.domain.PageRequest.of(0, limit + 1);
+        List<Integer> ids = accountItemRepository.findIdsPaged(productId, itemStatusId, keyword, lastId, pageable);
+        boolean hasMore = ids.size() > limit;
+        List<Integer> queryIds = hasMore ? ids.subList(0, limit) : ids;
+
+        List<AdminInventoryDTO> content = new java.util.ArrayList<>();
+        if (!queryIds.isEmpty()) {
+            List<AccountItem> items = accountItemRepository.findByAccountItemIdInOrderByAccountItemIdDesc(queryIds);
+            java.util.Map<Integer, String> productMap = productRepository.findAll().stream()
+                    .collect(Collectors.toMap(Product::getProductId, Product::getProductName, (a, b) -> a));
+            content = items.stream().map(item -> {
+                AdminInventoryDTO dto = new AdminInventoryDTO();
+                dto.setAccountItemId(item.getAccountItemId());
+                dto.setProductId(item.getProductId());
+                dto.setAccountEmail(item.getAccountEmail());
+                dto.setAccountPassword(item.getAccountPassword());
+                dto.setItemStatusId(item.getItemStatusId());
+                dto.setCreatedAt(item.getCreatedAt());
+                dto.setProductName(productMap.getOrDefault(item.getProductId(), "UNKNOWN"));
+                dto.setStatusName(
+                        item.getItemStatusId() == 1 ? "Sẵn sàng" : item.getItemStatusId() == 2 ? "Đã bán" : "Lỗi");
+                return dto;
+            }).collect(Collectors.toList());
+        }
+        return new PagedResponse<>(content, hasMore);
+    }
+
+    public PagedResponse<SubscriptionPlan> getSubscriptionPlansPaged(String keyword, Integer lastId, int limit) {
+        org.springframework.data.domain.PageRequest pageable = org.springframework.data.domain.PageRequest.of(0, limit + 1);
+        List<Integer> ids = subscriptionPlanRepository.findIdsPaged(keyword, lastId, pageable);
+        boolean hasMore = ids.size() > limit;
+        List<Integer> queryIds = hasMore ? ids.subList(0, limit) : ids;
+
+        List<SubscriptionPlan> content = new java.util.ArrayList<>();
+        if (!queryIds.isEmpty()) {
+            content = subscriptionPlanRepository.findByPlanIdInOrderByPlanIdDesc(queryIds);
+        }
+        return new PagedResponse<>(content, hasMore);
+    }
+
+    public PagedResponse<ProductSubscription> getProductSubscriptionsPaged(Integer productId, Integer lastId, int limit) {
+        org.springframework.data.domain.PageRequest pageable = org.springframework.data.domain.PageRequest.of(0, limit + 1);
+        List<Integer> ids = productSubscriptionRepository.findIdsPaged(productId, lastId, pageable);
+        boolean hasMore = ids.size() > limit;
+        List<Integer> queryIds = hasMore ? ids.subList(0, limit) : ids;
+
+        List<ProductSubscription> content = new java.util.ArrayList<>();
+        if (!queryIds.isEmpty()) {
+            content = productSubscriptionRepository.findByProductSubscriptionIdInOrderByProductSubscriptionIdDesc(queryIds);
+        }
+        return new PagedResponse<>(content, hasMore);
+    }
+
+    public PagedResponse<TransactionDTO> getTransactionsPaged(Integer statusId, Integer accountId, String keyword, Integer lastId, int limit) {
+        org.springframework.data.domain.PageRequest pageable = org.springframework.data.domain.PageRequest.of(0, limit + 1);
+        List<Integer> ids = transactionRepository.findIdsPaged(statusId, accountId, keyword, lastId, pageable);
+        boolean hasMore = ids.size() > limit;
+        List<Integer> queryIds = hasMore ? ids.subList(0, limit) : ids;
+
+        List<TransactionDTO> content = new java.util.ArrayList<>();
+        if (!queryIds.isEmpty()) {
+            List<Transaction> transactions = transactionRepository.findByTransactionIdInOrderByTransactionIdDesc(queryIds);
+            java.util.Map<Integer, String> accountMap = accountRepository.findAll().stream()
+                    .collect(Collectors.toMap(Account::getAccountId, Account::getUsername, (a, b) -> a));
+            java.util.Map<Integer, String> statusMap = transactionStatusRepository.findAll().stream()
+                    .collect(Collectors.toMap(TransactionStatus::getTransactionStatusId, TransactionStatus::getStatusName, (a, b) -> a));
+            java.util.Map<Integer, String> paymentMap = paymentMethodRepository.findAll().stream()
+                    .collect(Collectors.toMap(PaymentMethod::getPaymentMethodId, PaymentMethod::getMethodName, (a, b) -> a));
+            java.util.Map<Integer, String> typeMap = transactionTypeRepository.findAll().stream()
+                    .collect(Collectors.toMap(TransactionType::getTransactionTypeId, TransactionType::getTypeName, (a, b) -> a));
+
+            content = transactions.stream().map(tx -> {
+                TransactionDTO dto = new TransactionDTO();
+                dto.setTransactionId(tx.getTransactionId());
+                dto.setAccountId(tx.getAccountId());
+                dto.setUsername(accountMap.getOrDefault(tx.getAccountId(), "UNKNOWN"));
+                dto.setOrderId(tx.getOrderId());
+                dto.setAmount(tx.getAmount());
+                dto.setTransactionTypeId(tx.getTransactionTypeId());
+                dto.setTransactionTypeName(typeMap.getOrDefault(tx.getTransactionTypeId(), "UNKNOWN"));
+                dto.setPaymentMethodId(tx.getPaymentMethodId());
+                dto.setPaymentMethodName(paymentMap.getOrDefault(tx.getPaymentMethodId(), "UNKNOWN"));
+                dto.setDescription(tx.getDescription());
+                dto.setTransactionStatusId(tx.getTransactionStatusId());
+                dto.setTransactionStatusName(statusMap.getOrDefault(tx.getTransactionStatusId(), "UNKNOWN"));
+                dto.setCreatedAt(tx.getCreatedAt());
+                dto.setUpdatedAt(tx.getUpdatedAt());
+                return dto;
+            }).collect(Collectors.toList());
+        }
+        return new PagedResponse<>(content, hasMore);
     }
 }

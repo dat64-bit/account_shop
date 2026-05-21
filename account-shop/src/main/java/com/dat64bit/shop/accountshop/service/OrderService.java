@@ -2,14 +2,18 @@ package com.dat64bit.shop.accountshop.service;
 
 import com.dat64bit.shop.accountshop.dto.request.CheckoutRequest;
 import com.dat64bit.shop.accountshop.dto.response.OrderDTO;
+import com.dat64bit.shop.accountshop.dto.response.PagedResponse;
 import com.dat64bit.shop.accountshop.entity.*;
 import com.dat64bit.shop.accountshop.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -117,9 +121,7 @@ public class OrderService {
                     dto.setCreatedAt(o.getCreatedAt());
 
                     // Lấy chi tiết đơn hàng đầu tiên
-                    List<OrderDetail> details = orderDetailRepository.findAll().stream()
-                            .filter(d -> d.getOrderId().equals(o.getOrderId()))
-                            .collect(Collectors.toList());
+                    List<OrderDetail> details = orderDetailRepository.findByOrderId(o.getOrderId());
                     
                     if (!details.isEmpty()) {
                         OrderDetail firstDetail = details.get(0);
@@ -144,5 +146,58 @@ public class OrderService {
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    public PagedResponse<OrderDTO> getOrdersPaged(Integer lastId, int limit, Integer statusId, Integer accountId, String keyword) {
+        Pageable pageable = PageRequest.of(0, limit + 1);
+        List<Integer> ids = orderRepository.findIdsPaged(statusId, accountId, keyword, lastId, pageable);
+        boolean hasMore = ids.size() > limit;
+        List<Integer> idsToFetch = hasMore ? ids.subList(0, limit) : ids;
+
+        List<OrderDTO> content = new ArrayList<>();
+        if (!idsToFetch.isEmpty()) {
+            List<Order> orders = orderRepository.findByOrderIdInOrderByOrderIdDesc(idsToFetch);
+            content = orders.stream().map(o -> {
+                OrderDTO dto = new OrderDTO();
+                dto.setOrderId(o.getOrderId());
+                dto.setTotalAmount(o.getTotalAmount());
+                dto.setOrderStatus(o.getOrderStatusId() != null && o.getOrderStatusId() == 2 ? "COMPLETED" : "PENDING");
+                dto.setCreatedAt(o.getCreatedAt());
+
+                // Set username
+                accountRepository.findById(o.getAccountId()).ifPresent(acc -> dto.setUsername(acc.getUsername()));
+
+                // Lấy chi tiết đơn hàng
+                List<OrderDetail> details = orderDetailRepository.findByOrderId(o.getOrderId());
+                if (!details.isEmpty()) {
+                    OrderDetail firstDetail = details.get(0);
+                    subscriptionRepository.findById(firstDetail.getProductSubscriptionId()).ifPresent(sub -> {
+                        productRepository.findById(sub.getProductId()).ifPresent(p -> dto.setProductName(p.getProductName()));
+                    });
+                    
+                    if (firstDetail.getAccountItemId() != null) {
+                        accountItemRepository.findById(firstDetail.getAccountItemId()).ifPresent(item -> {
+                            String info = item.getAccountEmail() + " | " + item.getAccountPassword();
+                            if (firstDetail.getAccountSlotId() != null) {
+                                accountSlotRepository.findById(firstDetail.getAccountSlotId()).ifPresent(slot -> {
+                                    dto.setAccountInfo(info + " | Profile: " + slot.getSlotName() + (slot.getPinCode() != null ? " (PIN: " + slot.getPinCode() + ")" : ""));
+                                });
+                            } else {
+                                dto.setAccountInfo(info);
+                            }
+                        });
+                    }
+                }
+                return dto;
+            }).collect(Collectors.toList());
+        }
+
+        return new PagedResponse<>(content, hasMore);
+    }
+
+    public PagedResponse<OrderDTO> getMyOrdersPaged(String username, Integer lastId, int limit, Integer statusId, String keyword) {
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+        return getOrdersPaged(lastId, limit, statusId, account.getAccountId(), keyword);
     }
 }

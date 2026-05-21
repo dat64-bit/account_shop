@@ -1,6 +1,7 @@
 package com.dat64bit.shop.accountshop.service;
 
 import com.dat64bit.shop.accountshop.dto.request.TicketRequest;
+import com.dat64bit.shop.accountshop.dto.response.PagedResponse;
 import com.dat64bit.shop.accountshop.entity.Ticket;
 import com.dat64bit.shop.accountshop.entity.TicketReply;
 import com.dat64bit.shop.accountshop.repository.TicketReplyRepository;
@@ -79,5 +80,18 @@ public class TicketService {
         ticket.setTicketStatusId(statusId);
         ticket.setUpdatedAt(LocalDateTime.now());
         ticketRepository.save(ticket);
+    }
+
+    public PagedResponse<Ticket> getTicketsPaged(Integer statusId, Integer accountId, String keyword, Integer lastId, int limit) {
+        org.springframework.data.domain.PageRequest pageable = org.springframework.data.domain.PageRequest.of(0, limit + 1);
+        List<Integer> ids = ticketRepository.findIdsPaged(statusId, accountId, keyword, lastId, pageable);
+        boolean hasMore = ids.size() > limit;
+        List<Integer> queryIds = hasMore ? ids.subList(0, limit) : ids;
+
+        List<Ticket> content = new java.util.ArrayList<>();
+        if (!queryIds.isEmpty()) {
+            content = ticketRepository.findByTicketIdInOrderByTicketIdDesc(queryIds);
+        }
+        return new PagedResponse<>(content, hasMore);
     }
 }

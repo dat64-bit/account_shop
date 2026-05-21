@@ -28,12 +28,16 @@ public class OrderController {
     }
 
     @GetMapping("/my-orders")
-    public ResponseEntity<?> getMyOrders() {
+    public ResponseEntity<?> getMyOrders(
+            @RequestParam(required = false) Integer lastId,
+            @RequestParam(defaultValue = "15") int limit,
+            @RequestParam(required = false) Integer statusId,
+            @RequestParam(required = false) String keyword) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String username = authentication.getName();
             
-            return ResponseEntity.ok(orderService.getMyOrders(username));
+            return ResponseEntity.ok(orderService.getMyOrdersPaged(username, lastId, limit, statusId, keyword));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

@@ -2,7 +2,6 @@ package com.dat64bit.shop.accountshop.controller;
 
 import com.dat64bit.shop.accountshop.entity.*;
 import com.dat64bit.shop.accountshop.dto.request.InventoryRequest;
-import com.dat64bit.shop.accountshop.dto.response.ProductDTO;
 import com.dat64bit.shop.accountshop.service.AdminService;
 import com.dat64bit.shop.accountshop.service.TicketService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,14 +20,22 @@ public class AdminController {
     @Autowired
     private TicketService ticketService;
 
+    @Autowired
+    private com.dat64bit.shop.accountshop.service.OrderService orderService;
+
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard() {
         return ResponseEntity.ok(adminService.getDashboardStats());
     }
 
     @GetMapping("/users")
-    public ResponseEntity<?> getUsers() {
-        return ResponseEntity.ok(adminService.getAllUsers());
+    public ResponseEntity<?> getUsers(
+            @RequestParam(required = false) Integer statusId,
+            @RequestParam(required = false) Integer roleId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer lastId,
+            @RequestParam(defaultValue = "15") int limit) {
+        return ResponseEntity.ok(adminService.getUsersPaged(statusId, roleId, keyword, lastId, limit));
     }
 
     @PutMapping("/users/{id}/status")
@@ -42,8 +49,13 @@ public class AdminController {
     }
 
     @GetMapping("/products")
-    public ResponseEntity<?> getAllProducts() {
-        return ResponseEntity.ok(adminService.getAllProducts());
+    public ResponseEntity<?> getAllProducts(
+            @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) Integer statusId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer lastId,
+            @RequestParam(defaultValue = "15") int limit) {
+        return ResponseEntity.ok(adminService.getProductsPaged(categoryId, statusId, keyword, lastId, limit));
     }
 
     @PostMapping("/products")
@@ -86,7 +98,8 @@ public class AdminController {
     }
 
     @PostMapping("/orders/{orderDetailId}/replace-account")
-    public ResponseEntity<?> replaceAccount(@PathVariable Integer orderDetailId, @RequestParam Integer newAccountItemId) {
+    public ResponseEntity<?> replaceAccount(@PathVariable Integer orderDetailId,
+            @RequestParam Integer newAccountItemId) {
         try {
             adminService.replaceAccountForOrder(orderDetailId, newAccountItemId);
             return ResponseEntity.ok("Account replaced successfully for the order.");
@@ -105,13 +118,22 @@ public class AdminController {
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<?> getCategories() {
-        return ResponseEntity.ok(adminService.getAllCategories());
+    public ResponseEntity<?> getCategories(
+            @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer lastId,
+            @RequestParam(defaultValue = "15") int limit) {
+        return ResponseEntity.ok(adminService.getCategoriesPaged(isActive, keyword, lastId, limit));
     }
 
     @GetMapping("/inventory")
-    public ResponseEntity<?> getInventory(@RequestParam(required = false) Integer productId) {
-        return ResponseEntity.ok(adminService.getInventory(productId));
+    public ResponseEntity<?> getInventory(
+            @RequestParam(required = false) Integer productId,
+            @RequestParam(required = false) Integer itemStatusId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer lastId,
+            @RequestParam(defaultValue = "15") int limit) {
+        return ResponseEntity.ok(adminService.getInventoryPaged(productId, itemStatusId, keyword, lastId, limit));
     }
 
     @DeleteMapping("/inventory/{id}")
@@ -125,8 +147,13 @@ public class AdminController {
     }
 
     @GetMapping("/tickets")
-    public ResponseEntity<?> getAllTickets() {
-        return ResponseEntity.ok(ticketService.getAllTickets());
+    public ResponseEntity<?> getAllTickets(
+            @RequestParam(required = false) Integer statusId,
+            @RequestParam(required = false) Integer accountId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer lastId,
+            @RequestParam(defaultValue = "15") int limit) {
+        return ResponseEntity.ok(ticketService.getTicketsPaged(statusId, accountId, keyword, lastId, limit));
     }
 
     @PutMapping("/tickets/{id}/status")
@@ -140,7 +167,8 @@ public class AdminController {
     }
 
     @PutMapping("/tickets/{id}/resolve")
-    public ResponseEntity<?> resolveTicket(@PathVariable Integer id, @RequestParam Integer newStatusId, @RequestParam(required = false) String notes) {
+    public ResponseEntity<?> resolveTicket(@PathVariable Integer id, @RequestParam Integer newStatusId,
+            @RequestParam(required = false) String notes) {
         try {
             adminService.resolveTicket(id, notes, newStatusId);
             return ResponseEntity.ok("Ticket resolved successfully.");
@@ -151,8 +179,11 @@ public class AdminController {
 
     // --- Subscription Plans ---
     @GetMapping("/subscription-plans")
-    public ResponseEntity<?> getSubscriptionPlans() {
-        return ResponseEntity.ok(adminService.getAllSubscriptionPlans());
+    public ResponseEntity<?> getSubscriptionPlans(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer lastId,
+            @RequestParam(defaultValue = "15") int limit) {
+        return ResponseEntity.ok(adminService.getSubscriptionPlansPaged(keyword, lastId, limit));
     }
 
     @PostMapping("/subscription-plans")
@@ -166,8 +197,11 @@ public class AdminController {
 
     // --- Product Subscriptions (Pricing) ---
     @GetMapping("/product-subscriptions")
-    public ResponseEntity<?> getProductSubscriptions() {
-        return ResponseEntity.ok(adminService.getAllProductSubscriptions());
+    public ResponseEntity<?> getProductSubscriptions(
+            @RequestParam(required = false) Integer productId,
+            @RequestParam(required = false) Integer lastId,
+            @RequestParam(defaultValue = "15") int limit) {
+        return ResponseEntity.ok(adminService.getProductSubscriptionsPaged(productId, lastId, limit));
     }
 
     @PostMapping("/product-subscriptions")
@@ -187,5 +221,25 @@ public class AdminController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @GetMapping("/orders")
+    public ResponseEntity<?> getOrders(
+            @RequestParam(required = false) Integer statusId,
+            @RequestParam(required = false) Integer accountId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer lastId,
+            @RequestParam(defaultValue = "15") int limit) {
+        return ResponseEntity.ok(orderService.getOrdersPaged(lastId, limit, statusId, accountId, keyword));
+    }
+
+    @GetMapping("/transactions")
+    public ResponseEntity<?> getTransactions(
+            @RequestParam(required = false) Integer statusId,
+            @RequestParam(required = false) Integer accountId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer lastId,
+            @RequestParam(defaultValue = "15") int limit) {
+        return ResponseEntity.ok(adminService.getTransactionsPaged(statusId, accountId, keyword, lastId, limit));
     }
 }

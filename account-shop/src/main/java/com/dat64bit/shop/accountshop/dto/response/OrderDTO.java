@@ -12,5 +12,6 @@ public class OrderDTO {
     private String fulfillmentStatus;
     private String productName; // Thêm tên sản phẩm
     private String accountInfo; // Thêm thông tin tài khoản (Email|Pass|Slot)
+    private String username; // Thêm username của khách hàng
     private LocalDateTime createdAt;
 }

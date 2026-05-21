@@ -37,10 +37,13 @@ public class TicketController {
     }
 
     @GetMapping("/my-tickets")
-    public ResponseEntity<?> getMyTickets() {
+    public ResponseEntity<?> getMyTickets(
+            @RequestParam(required = false) Integer lastId,
+            @RequestParam(defaultValue = "15") int limit,
+            @RequestParam(required = false) Integer statusId) {
         try {
             Account account = getCurrentAccount();
-            return ResponseEntity.ok(ticketService.getTicketsByAccount(account.getAccountId()));
+            return ResponseEntity.ok(ticketService.getTicketsPaged(statusId, account.getAccountId(), null, lastId, limit));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
