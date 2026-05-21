@@ -59,12 +59,19 @@ Tài liệu này tổng hợp toàn bộ chặng đường phát triển, xây d
     * Thêm `suppressHydrationWarning={true}` cho các thẻ root `<html>`, `<body>`.
     * Chèn script chạy đồng bộ sử dụng `MutationObserver` để tự động xóa thuộc tính lạ khỏi DOM trước khi React Hydrate.
 
-### Giai đoạn 7: Tích hợp Đám mây Cloudinary để Quản lý Ảnh (Hiện tại)
+### Giai đoạn 7: Tích hợp Đám mây Cloudinary để Quản lý Ảnh
 * **Mục tiêu:** Quản lý ảnh sản phẩm/danh mục chuyên nghiệp trên đám mây.
 * **Các công việc đã thực hiện:**
   * Tích hợp **Cloudinary Java SDK (`cloudinary-http5`)** vào Backend.
   * Viết dịch vụ `CloudinaryService` để chuyển đổi và tải ảnh trực tiếp từ bộ nhớ RAM lên đám mây Cloudinary an toàn.
   * Tạo endpoint `/api/admin/files/upload` phân quyền Admin chặt chẽ, kiểm tra kỹ loại file (chỉ cho phép `image/*`) để ngăn chặn hacker tải lên webshell.
+
+### Giai đoạn 8: Chuẩn hóa Component Admin dùng chung & Tối ưu hóa cấu hình hệ thống (Hiện tại)
+* **Mục tiêu:** Tái sử dụng giao diện bảng biểu/thông báo, sửa lỗi UI Modal và hoàn thiện bảo mật cấu hình.
+* **Các công việc đã thực hiện:**
+  * **Trích xuất các component Admin dùng chung:** Tạo và đồng bộ hóa các component tái sử dụng như `AdminToast` (hiển thị thông báo toast góc màn hình), `AdminConfirmModal` (modal xác nhận hành động nguy hiểm), và `AdminTableCard` (quản lý bố cục bảng biểu nâng cao của Admin) giúp chuẩn hóa thiết kế và giảm thiểu trùng lặp code.
+  * **Sửa lỗi lớp phủ mờ (Modal Overlay):** Điều chỉnh CSS để lớp phủ mờ bao phủ toàn bộ viewport (bao gồm cả Sticky Header) mà không bị che khuất hoặc đè lên bởi các phần tử cố định.
+  * **Bảo mật và cấu hình Backend:** Chuyển đổi toàn bộ mật khẩu và thông tin cấu hình nhạy cảm trong `application.properties` sang các biến môi trường (Environment Variables). Tăng giới hạn tải lên tệp tin của Spring Boot (`multipart.max-file-size` và `multipart.max-request-size`) lên `10MB` để hỗ trợ tải ảnh sản phẩm dung lượng lớn tốt hơn.
 
 ---
 
