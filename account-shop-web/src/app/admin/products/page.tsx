@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Portal from '@/components/Portal';
+import { AdminPagination } from '@/components/admin/AdminPagination';
 
 
 const Plus = () => (
@@ -21,6 +22,23 @@ export default function AdminProducts() {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+
+  // Filters & Keyset Pagination
+  const [categoryIdFilter, setCategoryIdFilter] = useState<number | undefined>(undefined);
+  const [statusIdFilter, setStatusIdFilter] = useState<number | undefined>(undefined);
+  const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedKeyword(keyword);
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [keyword]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [cursors, setCursors] = useState<(number | null)[]>([null]);
 
   // View State
   const [view, setView] = useState<'list' | 'details' | 'form'>('list');
@@ -65,26 +83,82 @@ export default function AdminProducts() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const fetchData = async () => {
+  const fetchMetadata = async () => {
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      const catRes = await fetch('http://localhost:8080/api/admin/categories', { headers });
-      if (catRes.ok) setCategories(await catRes.json());
-
-      const productsRes = await fetch('http://localhost:8080/api/admin/products', { headers });
-      if (productsRes.ok) {
-        const productsData = await productsRes.json();
-        setProducts(Array.isArray(productsData) ? productsData : []);
+      const catRes = await fetch('http://localhost:8080/api/admin/categories?limit=1000', { headers });
+      if (catRes.ok) {
+        const data = await catRes.json();
+        setCategories(data.content || data || []);
       }
 
-      const durationRes = await fetch('http://localhost:8080/api/admin/subscription-plans', { headers });
-      if (durationRes.ok) setDurationPlans(await durationRes.json());
+      const durationRes = await fetch('http://localhost:8080/api/admin/subscription-plans?limit=1000', { headers });
+      if (durationRes.ok) {
+        const data = await durationRes.json();
+        setDurationPlans(data.content || data || []);
+      }
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching metadata:", error);
+    }
+  };
+
+  const fetchProducts = async (lastId: number | null, page: number) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+      let url = `http://localhost:8080/api/admin/products?limit=15`;
+      if (lastId !== null) url += `&lastId=${lastId}`;
+      if (categoryIdFilter !== undefined) url += `&categoryId=${categoryIdFilter}`;
+      if (statusIdFilter !== undefined) url += `&statusId=${statusIdFilter}`;
+      if (debouncedKeyword.trim()) url += `&keyword=${encodeURIComponent(debouncedKeyword.trim())}`;
+
+      const productsRes = await fetch(url, { headers });
+      if (productsRes.ok) {
+        const data = await productsRes.json();
+        setProducts(data.content || []);
+        setHasMore(data.hasMore || false);
+        setCurrentPage(page);
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setIsMounted(true);
+    fetchMetadata();
+  }, []);
+
+  useEffect(() => {
+    if (isMounted) {
+      setCursors([null]);
+      fetchProducts(null, 1);
+    }
+  }, [categoryIdFilter, statusIdFilter, debouncedKeyword, isMounted]);
+
+  const handlePrev = () => {
+    if (currentPage > 1) {
+      const prevPage = currentPage - 1;
+      const prevLastId = cursors[prevPage - 1];
+      fetchProducts(prevLastId, prevPage);
+    }
+  };
+
+  const handleNext = () => {
+    if (hasMore && products.length > 0) {
+      const nextPage = currentPage + 1;
+      const currentLastId = products[products.length - 1].productId;
+      setCursors(prev => {
+        const nextCursors = [...prev];
+        nextCursors[nextPage - 1] = currentLastId;
+        return nextCursors;
+      });
+      fetchProducts(currentLastId, nextPage);
     }
   };
 
@@ -118,10 +192,6 @@ export default function AdminProducts() {
     }
   };
 
-  useEffect(() => {
-    setIsMounted(true);
-    fetchData();
-  }, []);
 
   const handleOpenDetails = (product: any) => {
     setSelectedProduct(product);
@@ -229,7 +299,7 @@ export default function AdminProducts() {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      fetchData();
+      fetchProducts(cursors[currentPage - 1], currentPage);
     } catch (err) {
       console.error(err);
     }
@@ -254,7 +324,7 @@ export default function AdminProducts() {
       });
       if (res.ok) {
         showToast('success', editingProduct ? 'Đã cập nhật sản phẩm thành công!' : 'Đã tạo sản phẩm mới thành công!');
-        fetchData();
+        fetchProducts(cursors[currentPage - 1], currentPage);
         setView('list');
       } else {
         showToast('error', 'Có lỗi xảy ra khi lưu sản phẩm.');
@@ -325,6 +395,52 @@ export default function AdminProducts() {
               <Plus /> Thêm sản phẩm
             </button>
           </div>
+
+          {/* Bộ lọc động */}
+          <div style={{ display: 'flex', gap: '16px', padding: '20px 24px', borderBottom: '1px solid var(--border)', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1', minWidth: '200px' }}>
+              <input
+                type="text"
+                placeholder="Tìm theo tên sản phẩm..."
+                className="form-input"
+                value={keyword}
+                onChange={e => setKeyword(e.target.value)}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
+              />
+            </div>
+            <div style={{ width: '200px' }}>
+              <select
+                className="form-input"
+                value={categoryIdFilter === undefined ? 'all' : categoryIdFilter}
+                onChange={e => {
+                  const val = e.target.value;
+                  setCategoryIdFilter(val === 'all' ? undefined : Number(val));
+                }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
+              >
+                <option value="all">Tất cả danh mục</option>
+                {categories.map(cat => (
+                  <option key={cat.categoryId} value={cat.categoryId}>{cat.categoryName}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ width: '180px' }}>
+              <select
+                className="form-input"
+                value={statusIdFilter === undefined ? 'all' : statusIdFilter}
+                onChange={e => {
+                  const val = e.target.value;
+                  setStatusIdFilter(val === 'all' ? undefined : Number(val));
+                }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
+              >
+                <option value="all">Tất cả trạng thái</option>
+                <option value="1">Đang kinh doanh</option>
+                <option value="2">Ngừng bán hàng</option>
+              </select>
+            </div>
+          </div>
+
           <div className="table-responsive">
             <table className="admin-table">
               <thead>
@@ -337,40 +453,52 @@ export default function AdminProducts() {
                 </tr>
               </thead>
               <tbody>
-                {products.map(p => (
-                  <tr key={p.productId}>
-                    <td>#{p.productId}</td>
-                    <td>
-                      {p.imageUrl ? (
-                        <img src={p.imageUrl} alt={p.productName} style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover' }} />
-                      ) : (
-                        <div style={{ width: 40, height: 40, borderRadius: 4, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                          <Plus />
-                        </div>
-                      )}
-                    </td>
-                    <td className="admin-text-bold">{p.productName}</td>
-                    <td>
-                      <span className={`admin-badge ${p.productStatusId === 1 ? 'success' : 'danger'}`}>
-                        {p.productStatusId === 1 ? 'Kinh doanh' : 'Tạm dừng'}
-                      </span>
-                    </td>
-                    <td className="admin-actions-cell">
-                      <div className="admin-table-actions">
-                        <button className="btn-admin-action view" onClick={() => handleOpenDetails(p)}>Chi tiết</button>
-                        <button 
-                          className={`btn-admin-action ${p.productStatusId === 1 ? 'lock' : 'edit'}`} 
-                          onClick={() => handleToggleProductStatus(p.productId, p.productStatusId)}
-                        >
-                          {p.productStatusId === 1 ? 'Dừng' : 'Bán lại'}
-                        </button>
-                      </div>
-                    </td>
+                {products.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>Không tìm thấy sản phẩm nào.</td>
                   </tr>
-                ))}
+                ) : (
+                  products.map(p => (
+                    <tr key={p.productId}>
+                      <td>#{p.productId}</td>
+                      <td>
+                        {p.imageUrl ? (
+                          <img src={p.imageUrl} alt={p.productName} style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: 40, height: 40, borderRadius: 4, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                            <Plus />
+                          </div>
+                        )}
+                      </td>
+                      <td className="admin-text-bold">{p.productName}</td>
+                      <td>
+                        <span className={`admin-badge ${p.productStatusId === 1 ? 'success' : 'danger'}`}>
+                          {p.productStatusId === 1 ? 'Kinh doanh' : 'Tạm dừng'}
+                        </span>
+                      </td>
+                      <td className="admin-actions-cell">
+                        <div className="admin-table-actions">
+                          <button className="btn-admin-action view" onClick={() => handleOpenDetails(p)}>Chi tiết</button>
+                          <button 
+                            className={`btn-admin-action ${p.productStatusId === 1 ? 'lock' : 'edit'}`} 
+                            onClick={() => handleToggleProductStatus(p.productId, p.productStatusId)}
+                          >
+                            {p.productStatusId === 1 ? 'Dừng' : 'Bán lại'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
+          <AdminPagination
+            currentPage={currentPage}
+            hasMore={hasMore}
+            onPrev={handlePrev}
+            onNext={handleNext}
+          />
         </div>
       )}
 

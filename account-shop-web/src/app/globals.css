@@ -1949,6 +1949,12 @@ a {
   transition: all 0.2s;
 }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
 .btn-cancel { background: #f1f5f9; color: #475569; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; }
 .btn-cancel:hover { background: #e2e8f0; }
 
@@ -3390,4 +3396,80 @@ body:has(.modal-overlay-premium) .header-wrapper,
 body:has(.auth-overlay) .header-wrapper {
   z-index: 10 !important;
 }
+
+/* ===================== */
+/* Pagination            */
+/* ===================== */
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-white);
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-pagination-info {
+  font-size: 0.875rem;
+  color: var(--text-sub);
+}
+
+.admin-pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-pagination-arrow, .btn-pagination-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-sub);
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-pagination-arrow:hover, .btn-pagination-page:hover {
+  background: var(--bg);
+  color: var(--text-main);
+  border-color: #cbd5e1;
+}
+
+.btn-pagination-page.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+.btn-pagination-arrow:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f8fafc;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.pagination-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
 

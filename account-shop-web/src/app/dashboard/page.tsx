@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Portal from '@/components/Portal';
+import { AdminPagination } from '@/components/admin/AdminPagination';
 
 interface Order {
   orderId: number;
@@ -57,12 +58,7 @@ const X = () => (
 );
 
 
-interface Ticket {
-  id: string;
-  subject: string;
-  status: 'OPEN' | 'RESOLVED' | 'PENDING';
-  updatedAt: string;
-}
+
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -74,36 +70,133 @@ export default function Dashboard() {
   // Tickets
   const [tickets, setTickets] = useState<Ticket[]>([]);
 
+  // Filters & Keyset Pagination States
+  const [orderStatusFilter, setOrderStatusFilter] = useState<number | undefined>(undefined);
+  const [orderKeyword, setOrderKeyword] = useState('');
+  const [debouncedOrderKeyword, setDebouncedOrderKeyword] = useState('');
+
   useEffect(() => {
-    const fetchData = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        window.location.href = '/';
-        return;
-      }
+    const handler = setTimeout(() => {
+      setDebouncedOrderKeyword(orderKeyword);
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [orderKeyword]);
+  const [ticketStatusFilter, setTicketStatusFilter] = useState<number | undefined>(undefined);
 
-      try {
-        const headers = { 'Authorization': `Bearer ${token}` };
-        
-        // Fetch Orders
-        const ordersRes = await fetch('http://localhost:8080/api/v1/orders/my-orders', { headers });
-        const ordersData = await ordersRes.json();
-        setOrders(ordersData);
+  const [ordersHasMore, setOrdersHasMore] = useState(false);
+  const [ordersCursors, setOrdersCursors] = useState<(number | null)[]>([null]);
+  const [currentOrdersPage, setCurrentOrdersPage] = useState(1);
 
-        // Fetch Tickets
-        const ticketsRes = await fetch('http://localhost:8080/api/v1/tickets/my-tickets', { headers });
-        const ticketsData = await ticketsRes.json();
-        setTickets(ticketsData);
+  const [ticketsHasMore, setTicketsHasMore] = useState(false);
+  const [ticketsCursors, setTicketsCursors] = useState<(number | null)[]>([null]);
+  const [currentTicketsPage, setCurrentTicketsPage] = useState(1);
+  const [isMounted, setIsMounted] = useState(false);
 
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchOrders = async (lastId: number | null, page: number, currentStatusFilter = orderStatusFilter, currentKeyword = orderKeyword) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const headers = { 'Authorization': `Bearer ${token}` };
+      let url = `http://localhost:8080/api/v1/orders/my-orders?limit=15`;
+      if (lastId) url += `&lastId=${lastId}`;
+      if (currentStatusFilter !== undefined) url += `&statusId=${currentStatusFilter}`;
+      if (currentKeyword.trim()) url += `&keyword=${encodeURIComponent(currentKeyword.trim())}`;
+      
+      const res = await fetch(url, { headers });
+      const data = await res.json();
+      setOrders(data.content || []);
+      setOrdersHasMore(data.hasMore || false);
+      setCurrentOrdersPage(page);
+    } catch (e) {
+      console.error("Error fetching orders:", e);
+    }
+  };
 
-    fetchData();
+  const fetchTickets = async (lastId: number | null, page: number, currentStatusFilter = ticketStatusFilter) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const headers = { 'Authorization': `Bearer ${token}` };
+      let url = `http://localhost:8080/api/v1/tickets/my-tickets?limit=15`;
+      if (lastId) url += `&lastId=${lastId}`;
+      if (currentStatusFilter !== undefined) url += `&statusId=${currentStatusFilter}`;
+      
+      const res = await fetch(url, { headers });
+      const data = await res.json();
+      setTickets(data.content || []);
+      setTicketsHasMore(data.hasMore || false);
+      setCurrentTicketsPage(page);
+    } catch (e) {
+      console.error("Error fetching tickets:", e);
+    }
+  };
+
+  const handleOrdersPrev = () => {
+    if (currentOrdersPage > 1) {
+      const prevPage = currentOrdersPage - 1;
+      const prevLastId = ordersCursors[prevPage - 1];
+      fetchOrders(prevLastId, prevPage);
+    }
+  };
+
+  const handleOrdersNext = () => {
+    if (ordersHasMore && orders.length > 0) {
+      const nextPage = currentOrdersPage + 1;
+      const currentLastId = orders[orders.length - 1].orderId;
+      setOrdersCursors(prev => {
+        const nextCursors = [...prev];
+        nextCursors[nextPage - 1] = currentLastId;
+        return nextCursors;
+      });
+      fetchOrders(currentLastId, nextPage);
+    }
+  };
+
+  const handleTicketsPrev = () => {
+    if (currentTicketsPage > 1) {
+      const prevPage = currentTicketsPage - 1;
+      const prevLastId = ticketsCursors[prevPage - 1];
+      fetchTickets(prevLastId, prevPage);
+    }
+  };
+
+  const handleTicketsNext = () => {
+    if (ticketsHasMore && tickets.length > 0) {
+      const nextPage = currentTicketsPage + 1;
+      const currentLastId = tickets[tickets.length - 1].ticketId;
+      setTicketsCursors(prev => {
+        const nextCursors = [...prev];
+        nextCursors[nextPage - 1] = currentLastId;
+        return nextCursors;
+      });
+      fetchTickets(currentLastId, nextPage);
+    }
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/';
+      return;
+    }
+    setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (isMounted) {
+      const initLoad = async () => {
+        setLoading(true);
+        setOrdersCursors([null]);
+        setTicketsCursors([null]);
+        await Promise.all([
+          fetchOrders(null, 1, orderStatusFilter, debouncedOrderKeyword),
+          fetchTickets(null, 1, ticketStatusFilter)
+        ]);
+        setLoading(false);
+      };
+      initLoad();
+    }
+  }, [isMounted, orderStatusFilter, debouncedOrderKeyword, ticketStatusFilter]);
 
   const [ticketMessage, setTicketMessage] = useState('');
 
@@ -128,7 +221,7 @@ export default function Dashboard() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          orderDetailId: selectedOrderId, // Giả định là mã chi tiết đơn
+          orderDetailId: selectedOrderId,
           issueType: 'ORDER_ISSUE',
           message: ticketMessage
         })
@@ -138,12 +231,9 @@ export default function Dashboard() {
         setShowTicketModal(false);
         setTicketMessage('');
         setActiveTab('tickets');
-        // Refresh tickets
-        const ticketsRes = await fetch('http://localhost:8080/api/v1/tickets/my-tickets', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const ticketsData = await ticketsRes.json();
-        setTickets(ticketsData);
+        // Reset and refresh tickets
+        setTicketsCursors([null]);
+        await fetchTickets(null, 1);
         alert('Yêu cầu hỗ trợ đã được gửi thành công!');
       } else {
         alert('Gửi yêu cầu thất bại, vui lòng thử lại.');
@@ -308,6 +398,35 @@ export default function Dashboard() {
                     <p className="card-subtitle">Quản lý các đơn hàng và tài khoản bạn đã mua</p>
                   </div>
 
+                  {/* Bộ lọc động */}
+                  <div style={{ display: 'flex', gap: '16px', padding: '20px 30px 10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1', minWidth: '200px' }}>
+                      <input
+                        type="text"
+                        placeholder="Tìm theo tên sản phẩm..."
+                        className="form-input"
+                        value={orderKeyword}
+                        onChange={e => setOrderKeyword(e.target.value)}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', background: 'var(--card-bg, #fff)', color: 'var(--text, #0f172a)' }}
+                      />
+                    </div>
+                    <div style={{ width: '180px' }}>
+                      <select
+                        className="form-input"
+                        value={orderStatusFilter === undefined ? 'all' : orderStatusFilter}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setOrderStatusFilter(val === 'all' ? undefined : Number(val));
+                        }}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', background: 'var(--card-bg, #fff)', color: 'var(--text, #0f172a)' }}
+                      >
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="2">Hoàn thành</option>
+                        <option value="1">Chờ xử lý</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="table-responsive">
                     <table className="dashboard-table">
                       <thead>
@@ -357,6 +476,13 @@ export default function Dashboard() {
                       </tbody>
                     </table>
                   </div>
+
+                  <AdminPagination
+                    currentPage={currentOrdersPage}
+                    hasMore={ordersHasMore}
+                    onPrev={handleOrdersPrev}
+                    onNext={handleOrdersNext}
+                  />
 
                   <div className="purchased-accounts-section">
                     <h3 className="section-small-title">Tài khoản đã mua gần đây</h3>
@@ -441,6 +567,26 @@ export default function Dashboard() {
                     </button>
                   </div>
 
+                  {/* Bộ lọc động */}
+                  <div style={{ display: 'flex', gap: '16px', padding: '20px 30px 10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ width: '180px' }}>
+                      <select
+                        className="form-input"
+                        value={ticketStatusFilter === undefined ? 'all' : ticketStatusFilter}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setTicketStatusFilter(val === 'all' ? undefined : Number(val));
+                        }}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', background: 'var(--card-bg, #fff)', color: 'var(--text, #0f172a)' }}
+                      >
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="1">Đang chờ</option>
+                        <option value="3">Đang xử lý</option>
+                        <option value="2">Đã xử lý</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="table-responsive">
                     <table className="dashboard-table">
                       <thead>
@@ -471,6 +617,13 @@ export default function Dashboard() {
                       </tbody>
                     </table>
                   </div>
+
+                  <AdminPagination
+                    currentPage={currentTicketsPage}
+                    hasMore={ticketsHasMore}
+                    onPrev={handleTicketsPrev}
+                    onNext={handleTicketsNext}
+                  />
 
                   <div className="ticket-empty-state" style={{ padding: '40px', textAlign: 'center', background: '#f8fafc', borderTop: '1px solid var(--border)' }}>
                     <p style={{ color: '#64748b', fontSize: 13 }}>Nếu bạn cần hỗ trợ gấp, vui lòng nhắn tin qua <strong>Zalo: 0123.456.789</strong></p>
