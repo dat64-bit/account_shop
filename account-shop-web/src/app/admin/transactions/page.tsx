@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { AdminTableCard } from '@/components/admin/AdminTableCard';
 
 export default function AdminTransactions() {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -24,47 +25,42 @@ export default function AdminTransactions() {
   if (loading) return <div className="animate-pulse">Đang tải...</div>;
 
   return (
-    <div className="admin-table-container animate-in">
-      <div className="card-header border-b border-slate-100">
-        <h2 className="card-title">Quản lý Giao dịch</h2>
-      </div>
-      <div className="table-responsive">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Mã GD</th>
-              <th>Người dùng</th>
-              <th>Số tiền</th>
-              <th>Phương thức</th>
-              <th>Trạng thái</th>
-              <th>Thời gian</th>
-              <th>Thao tác</th>
+    <AdminTableCard title="Quản lý Giao dịch">
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Mã GD</th>
+            <th>Người dùng</th>
+            <th>Số tiền</th>
+            <th>Phương thức</th>
+            <th>Trạng thái</th>
+            <th>Thời gian</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map(tx => (
+            <tr key={tx.transId}>
+              <td>{tx.transId}</td>
+              <td className="admin-text-bold">{tx.username}</td>
+              <td className="admin-text-price">{tx.amount.toLocaleString()}đ</td>
+              <td>{tx.method}</td>
+              <td>
+                <span className={`admin-badge ${tx.status === 'Thành công' ? 'success' : 'warning'}`}>
+                  {tx.status}
+                </span>
+              </td>
+              <td>{new Date(tx.createdAt).toLocaleString()}</td>
+              <td className="admin-actions-cell">
+                <div className="admin-table-actions">
+                  {tx.status === 'Chờ duyệt' && <button className="btn-admin-action edit">Duyệt ngay</button>}
+                  <button className="btn-admin-action view">Chi tiết</button>
+                </div>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {transactions.map(tx => (
-              <tr key={tx.transId}>
-                <td>{tx.transId}</td>
-                <td className="admin-text-bold">{tx.username}</td>
-                <td className="admin-text-price">{tx.amount.toLocaleString()}đ</td>
-                <td>{tx.method}</td>
-                <td>
-                  <span className={`admin-badge ${tx.status === 'Thành công' ? 'success' : 'warning'}`}>
-                    {tx.status}
-                  </span>
-                </td>
-                <td>{new Date(tx.createdAt).toLocaleString()}</td>
-                <td className="admin-actions-cell">
-                  <div className="admin-table-actions">
-                    {tx.status === 'Chờ duyệt' && <button className="btn-admin-action edit">Duyệt ngay</button>}
-                    <button className="btn-admin-action view">Chi tiết</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          ))}
+        </tbody>
+      </table>
+    </AdminTableCard>
   );
 }
