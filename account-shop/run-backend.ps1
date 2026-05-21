@@ -1,5 +1,7 @@
 # Script to load environment variables from .env and run Spring Boot backend
 
+Set-Location $PSScriptRoot
+
 $envFile = Join-Path $PSScriptRoot ".env"
 
 if (Test-Path $envFile) {
