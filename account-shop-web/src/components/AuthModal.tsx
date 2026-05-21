@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import api from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
+import Portal from './Portal';
 
 // SVG Components
 const User = ({ size = 16 }) => (
@@ -71,110 +72,102 @@ export default function AuthModal({ mode, onClose, onSwitchMode }: AuthModalProp
   };
 
   return (
-    <div className="auth-overlay" onClick={onClose}>
-      <div className="auth-card animate-in" onClick={e => e.stopPropagation()} style={{ position: 'relative' }}>
-        <button className="auth-close-btn" onClick={onClose}><X size={16} /></button>
+    <Portal>
+      <div className="auth-overlay" onClick={onClose}>
+        <div className="auth-card animate-in" onClick={e => e.stopPropagation()} style={{ position: 'relative' }}>
+          <button className="auth-close-btn" onClick={onClose}><X size={16} /></button>
 
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <img src="/logo.png" alt="Logo" style={{ height: 60, marginBottom: 12 }} />
-          <h2 style={{ fontSize: 22, fontWeight: 800 }}>Chào mừng trở lại!</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
-            Đăng nhập để trải nghiệm dịch vụ tốt nhất tại VanDatPremium
-          </p>
-        </div>
-
-        {/* Tabs */}
-        <div className="auth-tabs">
-          <button className={mode === 'login' ? 'auth-tab active' : 'auth-tab'} onClick={() => onSwitchMode('login')}>
-            Đăng nhập
-          </button>
-          <button className={mode === 'register' ? 'auth-tab active' : 'auth-tab'} onClick={() => onSwitchMode('register')}>
-            Đăng ký
-          </button>
-        </div>
-
-        {error && (
-          <div className="auth-error">
-            <AlertCircle size={15} /> {error}
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <img src="/logo.png" alt="Logo" style={{ height: 60, marginBottom: 12 }} />
+            <h2 style={{ fontSize: 22, fontWeight: 800 }}>Chào mừng trở lại!</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+              Đăng nhập để trải nghiệm dịch vụ tốt nhất tại VanDatPremium
+            </p>
           </div>
-        )}
-        {success && (
-          <div className="auth-success">
-            <CheckCircle2 size={15} /> {success}
-          </div>
-        )}
 
-        {mode === 'login' ? (
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label>Tài khoản <span className="required">*</span></label>
-              <div className="input-wrapper">
-                <span className="input-icon"><User size={16} /></span>
-                <input name="username" placeholder="Nhập tên đăng nhập" value={form.username} onChange={handleChange} required />
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Mật khẩu <span className="required">*</span></label>
-              <div className="input-wrapper">
-                <span className="input-icon"><Lock size={16} /></span>
-                <input name="password" type={showPass ? 'text' : 'password'} placeholder="Nhập mật khẩu" value={form.password} onChange={handleChange} required />
-                <button type="button" className="input-toggle" onClick={() => setShowPass(!showPass)}>
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-            <button type="submit" className="btn-submit" disabled={loading}>
-              {loading ? 'Đang xử lý...' : 'Đăng nhập'}
+          {/* Tabs */}
+          <div className="auth-tabs">
+            <button className={mode === 'login' ? 'auth-tab active' : 'auth-tab'} onClick={() => onSwitchMode('login')}>
+              Đăng nhập
             </button>
-            <div style={{ textAlign: 'right', marginTop: 8 }}>
-              <span className="auth-forgot">Quên mật khẩu?</span>
-            </div>
-            <div className="auth-switch">
-              Bạn chưa có tài khoản? <span onClick={() => onSwitchMode('register')}>Đăng ký ngay</span>
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={handleRegister}>
-            <div className="form-group">
-              <label>Tên đăng nhập <span className="required">*</span></label>
-              <div className="input-wrapper">
-                <span className="input-icon"><User size={16} /></span>
-                <input name="username" placeholder="Tên đăng nhập" value={form.username} onChange={handleChange} required />
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Họ và tên</label>
-              <div className="input-wrapper">
-                <span className="input-icon"><User size={16} /></span>
-                <input name="fullName" placeholder="Họ và tên đầy đủ" value={form.fullName} onChange={handleChange} />
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Email</label>
-              <div className="input-wrapper">
-                <span className="input-icon"><User size={16} /></span>
-                <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} />
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Mật khẩu <span className="required">*</span></label>
-              <div className="input-wrapper">
-                <span className="input-icon"><Lock size={16} /></span>
-                <input name="password" type={showPass ? 'text' : 'password'} placeholder="Mật khẩu (ít nhất 6 ký tự)" value={form.password} onChange={handleChange} required />
-                <button type="button" className="input-toggle" onClick={() => setShowPass(!showPass)}>
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-            <button type="submit" className="btn-submit" disabled={loading}>
-              {loading ? 'Đang xử lý...' : 'Đăng ký ngay'}
+            <button className={mode === 'register' ? 'auth-tab active' : 'auth-tab'} onClick={() => onSwitchMode('register')}>
+              Đăng ký
             </button>
-            <div className="auth-switch">
-              Đã có tài khoản? <span onClick={() => onSwitchMode('login')}>Đăng nhập</span>
+          </div>
+
+          {error && (
+            <div className="auth-alert error">
+              <AlertCircle size={15} /> <span>{error}</span>
             </div>
-          </form>
-        )}
+          )}
+          {success && (
+            <div className="auth-alert success">
+              <CheckCircle2 size={15} /> <span>{success}</span>
+            </div>
+          )}
+
+          {mode === 'login' ? (
+            <form onSubmit={handleLogin}>
+              <div className="form-group">
+                <label>Tài khoản <span className="required">*</span></label>
+                <div className="input-wrapper">
+                  <span className="input-icon"><User size={16} /></span>
+                  <input name="username" type="text" placeholder="Tên đăng nhập" value={form.username} onChange={handleChange} required />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Mật khẩu <span className="required">*</span></label>
+                <div className="input-wrapper">
+                  <span className="input-icon"><Lock size={16} /></span>
+                  <input name="password" type={showPass ? 'text' : 'password'} placeholder="Mật khẩu" value={form.password} onChange={handleChange} required />
+                  <button type="button" className="input-toggle" onClick={() => setShowPass(!showPass)}>
+                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <button type="submit" className="btn-submit" disabled={loading}>
+                {loading ? 'Đang xử lý...' : 'Đăng nhập'}
+              </button>
+              <div className="auth-switch">
+                Chưa có tài khoản? <span onClick={() => onSwitchMode('register')}>Đăng ký ngay</span>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleRegister}>
+              <div className="form-group">
+                <label>Tên đăng nhập <span className="required">*</span></label>
+                <div className="input-wrapper">
+                  <span className="input-icon"><User size={16} /></span>
+                  <input name="username" type="text" placeholder="Tên đăng nhập" value={form.username} onChange={handleChange} required />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Email</label>
+                <div className="input-wrapper">
+                  <span className="input-icon"><User size={16} /></span>
+                  <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Mật khẩu <span className="required">*</span></label>
+                <div className="input-wrapper">
+                  <span className="input-icon"><Lock size={16} /></span>
+                  <input name="password" type={showPass ? 'text' : 'password'} placeholder="Mật khẩu (ít nhất 6 ký tự)" value={form.password} onChange={handleChange} required />
+                  <button type="button" className="input-toggle" onClick={() => setShowPass(!showPass)}>
+                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <button type="submit" className="btn-submit" disabled={loading}>
+                {loading ? 'Đang xử lý...' : 'Đăng ký ngay'}
+              </button>
+              <div className="auth-switch">
+                Đã có tài khoản? <span onClick={() => onSwitchMode('login')}>Đăng nhập</span>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
-    </div>
+    </Portal>
   );
 }

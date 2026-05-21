@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import Portal from '@/components/Portal';
 
 interface Order {
   orderId: number;
@@ -483,61 +484,63 @@ export default function Dashboard() {
 
         {/* MODAL BÁO LỖI TICKET */}
         {showTicketModal && (
-          <div className="modal-overlay">
-            <div className="modal-container ticket-modal animate-in">
-              <div className="modal-header">
-                <h3>{selectedOrderId ? `Báo lỗi đơn hàng #${selectedOrderId}` : 'Gửi yêu cầu hỗ trợ'}</h3>
-                <button className="btn-close" onClick={() => setShowTicketModal(false)}><X /></button>
-              </div>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label>Chọn đơn hàng cần hỗ trợ <span style={{ color: '#ef4444' }}>*</span></label>
-                  <select 
-                    className="ticket-select"
-                    value={selectedOrderId || ''}
-                    onChange={(e) => setSelectedOrderId(Number(e.target.value))}
-                    disabled={!!selectedOrderId && orders.some(o => o.orderId === selectedOrderId)}
-                  >
-                    <option value="">-- Chọn đơn hàng của bạn --</option>
-                    {orders.filter(o => o.orderStatus === 'COMPLETED').map(o => (
-                      <option key={o.orderId} value={o.orderId}>
-                        Order #{o.orderId} - {o.productName}
-                      </option>
-                    ))}
-                  </select>
+          <Portal>
+            <div className="modal-overlay">
+              <div className="modal-container ticket-modal animate-in">
+                <div className="modal-header">
+                  <h3>{selectedOrderId ? `Báo lỗi đơn hàng #${selectedOrderId}` : 'Gửi yêu cầu hỗ trợ'}</h3>
+                  <button className="btn-close" onClick={() => setShowTicketModal(false)}><X /></button>
                 </div>
+                <div className="modal-body">
+                  <div className="form-group">
+                    <label>Chọn đơn hàng cần hỗ trợ <span style={{ color: '#ef4444' }}>*</span></label>
+                    <select 
+                      className="ticket-select"
+                      value={selectedOrderId || ''}
+                      onChange={(e) => setSelectedOrderId(Number(e.target.value))}
+                      disabled={!!selectedOrderId && orders.some(o => o.orderId === selectedOrderId)}
+                    >
+                      <option value="">-- Chọn đơn hàng của bạn --</option>
+                      {orders.filter(o => o.orderStatus === 'COMPLETED').map(o => (
+                        <option key={o.orderId} value={o.orderId}>
+                          Order #{o.orderId} - {o.productName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div className="form-group" style={{ marginTop: 16 }}>
-                  <label>Mô tả chi tiết lỗi <span style={{ color: '#ef4444' }}>*</span></label>
-                  <textarea 
-                    className="ticket-textarea" 
-                    placeholder="Vui lòng mô tả vấn đề bạn đang gặp phải (VD: Tài khoản sai pass, Profile bị khóa...)"
-                    value={ticketMessage}
-                    onChange={(e) => setTicketMessage(e.target.value)}
-                  ></textarea>
-                </div>
-                <div className="form-group">
-                  <label>Hình ảnh minh họa (Tối đa 2 ảnh)</label>
-                  <div className="image-upload-grid">
-                    <div className="upload-box">
-                      <Camera />
-                      <span>Chọn ảnh 1</span>
-                    </div>
-                    <div className="upload-box">
-                      <Camera />
-                      <span>Chọn ảnh 2</span>
+                  <div className="form-group" style={{ marginTop: 16 }}>
+                    <label>Mô tả chi tiết lỗi <span style={{ color: '#ef4444' }}>*</span></label>
+                    <textarea 
+                      className="ticket-textarea" 
+                      placeholder="Vui lòng mô tả vấn đề bạn đang gặp phải (VD: Tài khoản sai pass, Profile bị khóa...)"
+                      value={ticketMessage}
+                      onChange={(e) => setTicketMessage(e.target.value)}
+                    ></textarea>
+                  </div>
+                  <div className="form-group">
+                    <label>Hình ảnh minh họa (Tối đa 2 ảnh)</label>
+                    <div className="image-upload-grid">
+                      <div className="upload-box">
+                        <Camera />
+                        <span>Chọn ảnh 1</span>
+                      </div>
+                      <div className="upload-box">
+                        <Camera />
+                        <span>Chọn ảnh 2</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="ticket-modal-footer">
-                  <button className="btn-cancel" onClick={() => setShowTicketModal(false)}>Hủy bỏ</button>
-                  <button className="btn-submit-ticket" onClick={handleSubmitTicket}>
-                    Gửi yêu cầu hỗ trợ
-                  </button>
+                  <div className="ticket-modal-footer">
+                    <button className="btn-cancel" onClick={() => setShowTicketModal(false)}>Hủy bỏ</button>
+                    <button className="btn-submit-ticket" onClick={handleSubmitTicket}>
+                      Gửi yêu cầu hỗ trợ
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </Portal>
         )}
       </main>
       <Footer />

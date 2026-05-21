@@ -1065,7 +1065,7 @@ a {
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(4px);
-  z-index: 999;
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1915,7 +1915,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 99999;
 }
 .modal-container {
   background: white;
@@ -2841,12 +2841,18 @@ a {
   background: var(--bg);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  gap: 16px;
 }
 
 .admin-toggle-card.active {
   border-color: var(--primary);
   background: var(--primary-light);
   box-shadow: var(--shadow-md);
+}
+
+.admin-toggle-card > div:first-child {
+  flex: 1;
+  min-width: 0;
 }
 
 .admin-toggle-icon {
@@ -2857,6 +2863,7 @@ a {
   justify-content: center;
   border-radius: 12px;
   transition: all 0.3s;
+  flex-shrink: 0;
 }
 
 .admin-toggle-card.active .admin-toggle-icon {
@@ -2871,11 +2878,19 @@ a {
   border: 1px solid var(--border);
 }
 
+.admin-toggle-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .admin-toggle-info h4 {
   font-size: 15px;
   font-weight: 700;
   color: var(--text-main);
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-toggle-info p {
@@ -2883,6 +2898,9 @@ a {
   font-weight: 600;
   color: var(--text-muted);
   opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-switch {
@@ -2891,6 +2909,7 @@ a {
   border-radius: 99px;
   position: relative;
   transition: all 0.3s;
+  flex-shrink: 0;
 }
 
 .admin-switch.active { background: var(--primary); }
@@ -3039,6 +3058,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 99999;
   padding: 20px;
   animation: fadeIn 0.3s ease;
 }
@@ -3077,7 +3097,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 99999;
   padding: 20px;
 }
 
@@ -3181,7 +3201,7 @@ a {
   position: fixed;
   top: 24px;
   right: 24px;
-  z-index: 10000;
+  z-index: 100000;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -3362,4 +3382,12 @@ a {
 .admin-text-bold { font-weight: 700; }
 .admin-text-muted { color: var(--text-muted); font-size: 13px; }
 .admin-text-price { font-weight: 800; color: var(--text-main); font-family: monospace; }
+
+/* Fix stacking context conflict between sticky header and portals */
+body:has(.admin-modal-overlay) .header-wrapper,
+body:has(.modal-overlay) .header-wrapper,
+body:has(.modal-overlay-premium) .header-wrapper,
+body:has(.auth-overlay) .header-wrapper {
+  z-index: 10 !important;
+}
 

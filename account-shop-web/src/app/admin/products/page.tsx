@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Portal from '@/components/Portal';
+
 
 const Plus = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -620,43 +622,45 @@ export default function AdminProducts() {
 
       {/* Status Confirmation Modal */}
       {statusConfirmOpen && (
-        <div className="admin-modal-overlay">
-          <div className="admin-confirm-modal animate-in zoom-in duration-300">
-            <div className={`confirm-icon-wrapper ${pendingStatusId === 2 ? 'warning' : 'info'}`}>
-              {pendingStatusId === 2 ? (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-              ) : (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-              )}
-            </div>
-            <h3 className="confirm-title">
-              {pendingStatusId === 2 ? 'Xác nhận ngừng bán?' : 'Xác nhận mở bán lại?'}
-            </h3>
-            <p className="confirm-desc">
-              {pendingStatusId === 2 
-                ? 'Sản phẩm sẽ không còn hiển thị trên trang chủ và khách hàng không thể đặt mua.' 
-                : 'Sản phẩm sẽ hiển thị công khai trên cửa hàng để khách hàng có thể mua sắm.'}
-            </p>
-            <div className="confirm-actions">
-              <button 
-                className="btn-confirm-cancel" 
-                onClick={() => setStatusConfirmOpen(false)}
-              >
-                Hủy bỏ
-              </button>
-              <button 
-                className={`btn-confirm-action ${pendingStatusId === 2 ? 'danger' : ''}`}
-                onClick={() => {
-                  setProductForm({...productForm, productStatusId: pendingStatusId!});
-                  setStatusConfirmOpen(false);
-                  showToast('success', 'Đã thay đổi trạng thái niêm yết.');
-                }}
-              >
-                Xác nhận thay đổi
-              </button>
+        <Portal>
+          <div className="admin-modal-overlay">
+            <div className="admin-confirm-modal animate-in zoom-in duration-300">
+              <div className={`confirm-icon-wrapper ${pendingStatusId === 2 ? 'warning' : 'info'}`}>
+                {pendingStatusId === 2 ? (
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                ) : (
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                )}
+              </div>
+              <h3 className="confirm-title">
+                {pendingStatusId === 2 ? 'Xác nhận ngừng bán?' : 'Xác nhận mở bán lại?'}
+              </h3>
+              <p className="confirm-desc">
+                {pendingStatusId === 2 
+                  ? 'Sản phẩm sẽ không còn hiển thị trên trang chủ và khách hàng không thể đặt mua.' 
+                  : 'Sản phẩm sẽ hiển thị công khai trên cửa hàng để khách hàng có thể mua sắm.'}
+              </p>
+              <div className="confirm-actions">
+                <button 
+                  className="btn-confirm-cancel" 
+                  onClick={() => setStatusConfirmOpen(false)}
+                >
+                  Hủy bỏ
+                </button>
+                <button 
+                  className={`btn-confirm-action ${pendingStatusId === 2 ? 'danger' : ''}`}
+                  onClick={() => {
+                    setProductForm({...productForm, productStatusId: pendingStatusId!});
+                    setStatusConfirmOpen(false);
+                    showToast('success', 'Đã thay đổi trạng thái niêm yết.');
+                  }}
+                >
+                  Xác nhận thay đổi
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* Toast Notification */}
@@ -703,13 +707,6 @@ export default function AdminProducts() {
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 Sửa thông tin
-              </button>
-              <button
-                className={`btn-status-toggle ${selectedProduct.productStatusId === 1 ? 'active' : 'inactive'}`}
-                onClick={() => handleToggleProductStatus(selectedProduct.productId, selectedProduct.productStatusId)}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="10" y1="15" x2="10" y2="9"></line><line x1="14" y1="15" x2="14" y2="9"></line></svg>
-                {selectedProduct.productStatusId === 1 ? 'Dừng kinh doanh' : 'Mở kinh doanh'}
               </button>
             </div>
           </div>
@@ -855,38 +852,40 @@ export default function AdminProducts() {
 
       {/* Modal nhỏ cho việc nhập giá (Vẫn dùng Popup vì đây là form cực đơn giản - Confirm style) */}
       {planModalOpen && (
-        <div className="modal-overlay" style={{ zIndex: 1100 }}>
-          <div className="modal-container animate-in" style={{ maxWidth: '400px' }}>
-            <div className="modal-header">
-              <h3>{editingPlan ? 'Sửa giá gói' : 'Thêm giá gói'}</h3>
-              <button className="btn-close" onClick={() => setPlanModalOpen(false)}>&times;</button>
+        <Portal>
+          <div className="modal-overlay" style={{ zIndex: 1100 }}>
+            <div className="modal-container animate-in" style={{ maxWidth: '400px' }}>
+              <div className="modal-header">
+                <h3>{editingPlan ? 'Sửa giá gói' : 'Thêm giá gói'}</h3>
+                <button className="btn-close" onClick={() => setPlanModalOpen(false)}>&times;</button>
+              </div>
+              <form onSubmit={handleSavePlan} className="modal-body">
+                <div className="form-group">
+                  <label>Chọn thời hạn</label>
+                  <select className="form-input" value={planForm.planId} onChange={e => setPlanForm({ ...planForm, planId: e.target.value })} required disabled={!!editingPlan}>
+                    {durationPlans.map(d => <option key={d.planId} value={d.planId}>{d.planName} ({d.durationDays} ngày)</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Giá bán (VNĐ)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={planForm.price === 0 ? '' : planForm.price}
+                    onChange={e => setPlanForm({ ...planForm, price: Number(e.target.value) })}
+                    onFocus={e => e.target.select()}
+                    placeholder="Nhập giá..."
+                    required
+                  />
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn-view-account" onClick={() => setPlanModalOpen(false)}>Hủy</button>
+                  <button type="submit" className="btn-primary">Lưu lại</button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={handleSavePlan} className="modal-body">
-              <div className="form-group">
-                <label>Chọn thời hạn</label>
-                <select className="form-input" value={planForm.planId} onChange={e => setPlanForm({ ...planForm, planId: e.target.value })} required disabled={!!editingPlan}>
-                  {durationPlans.map(d => <option key={d.planId} value={d.planId}>{d.planName} ({d.durationDays} ngày)</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Giá bán (VNĐ)</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={planForm.price === 0 ? '' : planForm.price}
-                  onChange={e => setPlanForm({ ...planForm, price: Number(e.target.value) })}
-                  onFocus={e => e.target.select()}
-                  placeholder="Nhập giá..."
-                  required
-                />
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn-view-account" onClick={() => setPlanModalOpen(false)}>Hủy</button>
-                <button type="submit" className="btn-primary">Lưu lại</button>
-              </div>
-            </form>
           </div>
-        </div>
+        </Portal>
       )}
     </div>
   );
