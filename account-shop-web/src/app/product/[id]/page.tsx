@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
+import Portal from '@/components/Portal';
 
 interface Product {
   productId: number;
@@ -12,6 +13,16 @@ interface Product {
   categoryName: string;
   description: string;
   imageUrl?: string;
+  isContactSeller?: boolean;
+  isInputEmailRequired?: boolean;
+}
+
+interface ProductSubscription {
+  productSubscriptionId: number;
+  productId: number;
+  planId: number;
+  planName: string;
+  price: number;
 }
 
 // SVG Components
@@ -27,19 +38,37 @@ const ShieldCheck = () => (
 const Zap = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
 );
+const X = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+);
 
 export default function ProductDetail() {
   const { id } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
+  const [subscriptions, setSubscriptions] = useState<ProductSubscription[]>([]);
+  const [selectedSubscription, setSelectedSubscription] = useState<ProductSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('desc');
+  const [contactModalOpen, setContactModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const res = await fetch(`http://localhost:8080/api/public/catalog/products/${id}`);
         if (res.ok) {
-          setProduct(await res.json());
+          const prodData = await res.json();
+          setProduct(prodData);
+          
+          if (!prodData.isContactSeller) {
+            const subRes = await fetch(`http://localhost:8080/api/public/catalog/products/${id}/subscriptions`);
+            if (subRes.ok) {
+              const subData = await subRes.json();
+              setSubscriptions(subData);
+              if (subData && subData.length > 0) {
+                setSelectedSubscription(subData[0]);
+              }
+            }
+          }
         }
       } catch (err) {
         console.error("Failed to fetch product", err);
@@ -57,7 +86,9 @@ export default function ProductDetail() {
     productName: 'Sản phẩm mẫu',
     categoryName: 'Danh mục',
     description: 'Mô tả sản phẩm đang được cập nhật. Đây là bản xem trước giao diện.',
-    imageUrl: ''
+    imageUrl: '',
+    isContactSeller: false,
+    isInputEmailRequired: false
   };
 
   return (
@@ -78,7 +109,7 @@ export default function ProductDetail() {
             {/* Left: Image Gallery */}
             <div className="product-gallery">
               <div className="main-image" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
-                {p.imageUrl ? (
+                {p.imageUrl && p.imageUrl.trim() !== '' ? (
                   <img 
                     src={p.imageUrl} 
                     alt={p.productName} 
@@ -93,7 +124,7 @@ export default function ProductDetail() {
               </div>
               <div className="thumbnail-list">
                 <div className="thumb active" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {p.imageUrl ? (
+                  {p.imageUrl && p.imageUrl.trim() !== '' ? (
                     <img src={p.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <Package size={20} />
@@ -113,14 +144,57 @@ export default function ProductDetail() {
               </div>
 
               <div className="info-price">
-                <span className="price-current">Liên hệ</span>
+                <span className="price-current">
+                  {p.isContactSeller ? (
+                    "Liên hệ"
+                  ) : selectedSubscription ? (
+                    `${selectedSubscription.price.toLocaleString('vi-VN')}đ`
+                  ) : (
+                    "Liên hệ"
+                  )}
+                </span>
                 <span className="price-tag">Giá tốt nhất thị trường</span>
               </div>
 
-              <div className="info-actions">
-                <button className="btn-buy-now">MUA NGAY</button>
-                <button className="btn-add-cart">THÊM VÀO GIỎ</button>
-              </div>
+              {/* Gói dịch vụ (Subscription plans) */}
+              {!p.isContactSeller && subscriptions.length > 0 && (
+                <div className="product-plans">
+                  <div className="plans-title">
+                    Chọn thời hạn sử dụng:
+                  </div>
+                  <div className="plans-container">
+                    {subscriptions.map((sub) => {
+                      const isActive = selectedSubscription?.productSubscriptionId === sub.productSubscriptionId;
+                      return (
+                        <button
+                          key={sub.productSubscriptionId}
+                          onClick={() => setSelectedSubscription(sub)}
+                          className={`plan-btn ${isActive ? 'active' : ''}`}
+                        >
+                          {sub.planName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {p.isContactSeller ? (
+                <div className="info-actions">
+                  <button 
+                    className="btn-buy-contact" 
+                    onClick={() => setContactModalOpen(true)}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.9A8.38 8.38 0 0 1 4 11.3a8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    LIÊN HỆ MUA HÀNG (ZALO/FACEBOOK)
+                  </button>
+                </div>
+              ) : (
+                <div className="info-actions">
+                  <button className="btn-buy-now">MUA NGAY</button>
+                  <button className="btn-add-cart">THÊM VÀO GIỎ</button>
+                </div>
+              )}
 
               <div className="info-benefits">
                 <div className="benefit-item">
@@ -202,6 +276,59 @@ export default function ProductDetail() {
         </div>
       </main>
       <Footer />
+
+      {contactModalOpen && (
+        <Portal>
+          <div className="auth-overlay" onClick={() => setContactModalOpen(false)}>
+            <div className="contact-modal-card animate-in" onClick={e => e.stopPropagation()}>
+              <button 
+                className="auth-close-btn" 
+                onClick={() => setContactModalOpen(false)}
+                aria-label="Đóng"
+              >
+                <X />
+              </button>
+
+              <div className="contact-modal-header">
+                <div className="contact-modal-icon-wrapper">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.9A8.38 8.38 0 0 1 4 11.3a8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                </div>
+                <h2 className="contact-modal-title">Liên hệ người bán</h2>
+                <p className="contact-modal-desc">
+                  Sản phẩm này cần thực hiện thủ công hoặc tư vấn thêm. Vui lòng liên hệ với đội ngũ CSKH qua các kênh sau:
+                </p>
+              </div>
+
+              <div className="contact-modal-body">
+                <a 
+                  href="https://zalo.me/0123456789" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="contact-link-btn zalo"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72z"></path></svg>
+                  Nhắn tin qua Zalo: 0123.456.789
+                </a>
+
+                <a 
+                  href="https://facebook.com/vandatpremium" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="contact-link-btn facebook"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                  Hỗ trợ qua Facebook Fanpage
+                </a>
+
+                <div className="contact-modal-footer">
+                  <div>Email: <strong>contact@vandatpremium.vn</strong></div>
+                  <div>Thời gian hỗ trợ: <strong>8:00 - 22:00</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
     </>
   );
 }

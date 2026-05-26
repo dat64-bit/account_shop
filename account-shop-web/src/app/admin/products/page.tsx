@@ -166,19 +166,15 @@ export default function AdminProducts() {
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
-      const res = await fetch('http://localhost:8080/api/admin/product-subscriptions', { headers });
+      const res = await fetch(`http://localhost:8080/api/admin/product-subscriptions?productId=${productId}&limit=100`, { headers });
       if (!res.ok) {
         setProductPlans([]);
         return;
       }
-      const text = await res.text();
-      if (!text) {
-        setProductPlans([]);
-        return;
-      }
-      const allPlans = JSON.parse(text);
+      const data = await res.json();
+      const subList = data.content || [];
 
-      const filtered = (Array.isArray(allPlans) ? allPlans : []).filter((p: any) => p.productId === productId).map((p: any) => {
+      const filtered = subList.map((p: any) => {
         const duration = durationPlans.find((d: any) => d.planId === p.planId);
         return {
           ...p,
@@ -189,6 +185,7 @@ export default function AdminProducts() {
       setProductPlans(filtered);
     } catch (err) {
       console.error("Error fetching product plans:", err);
+      setProductPlans([]);
     }
   };
 
@@ -364,7 +361,7 @@ export default function AdminProducts() {
       }
     } catch (err) {
       console.error(err);
-      alert("Lỗi kết nối");
+      showToast('error', 'Lỗi kết nối máy chủ.');
     }
   };
 
