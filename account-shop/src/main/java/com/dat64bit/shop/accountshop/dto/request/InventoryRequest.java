@@ -9,4 +9,5 @@ public class InventoryRequest {
     private String password;
     // Dành cho account share
     private Integer maxSlots; 
+    private Integer itemStatusId;
 }

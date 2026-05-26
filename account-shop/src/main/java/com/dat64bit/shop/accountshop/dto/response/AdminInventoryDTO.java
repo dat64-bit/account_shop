@@ -13,4 +13,9 @@ public class AdminInventoryDTO {
     private Integer itemStatusId;
     private String statusName;
     private LocalDateTime createdAt;
+    
+    // Thống kê Slot cho tài khoản dùng chung (ADR-008)
+    private Integer totalSlots;
+    private Integer soldSlots;
+    private Integer freeSlots;
 }

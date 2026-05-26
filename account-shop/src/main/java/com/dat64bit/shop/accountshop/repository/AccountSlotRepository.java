@@ -16,4 +16,6 @@ public interface AccountSlotRepository extends JpaRepository<AccountSlot, Intege
                    "WHERE i.product_id = :productId AND i.item_status_id = 1 AND s.slot_status_id = 1", 
            nativeQuery = true)
     List<AccountSlot> findAvailableSlotsByProductId(@Param("productId") Integer productId);
+
+    List<AccountSlot> findByAccountItemIdIn(List<Integer> accountItemIds);
 }

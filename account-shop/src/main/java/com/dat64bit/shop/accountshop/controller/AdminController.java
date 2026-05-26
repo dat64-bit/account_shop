@@ -97,6 +97,16 @@ public class AdminController {
         }
     }
 
+    @PutMapping("/inventory/{id}")
+    public ResponseEntity<?> updateInventory(@PathVariable Integer id, @RequestBody InventoryRequest request) {
+        try {
+            adminService.updateInventory(id, request);
+            return ResponseEntity.ok("Inventory updated successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PostMapping("/orders/{orderDetailId}/replace-account")
     public ResponseEntity<?> replaceAccount(@PathVariable Integer orderDetailId,
             @RequestParam Integer newAccountItemId) {

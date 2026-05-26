@@ -183,6 +183,12 @@ public class AdminService {
             items = accountItemRepository.findAll();
         }
 
+        List<Integer> accountItemIds = items.stream().map(AccountItem::getAccountItemId).collect(Collectors.toList());
+        List<AccountSlot> allSlots = accountItemIds.isEmpty() ? new java.util.ArrayList<>() 
+                : accountSlotRepository.findByAccountItemIdIn(accountItemIds);
+        java.util.Map<Integer, List<AccountSlot>> slotsMap = allSlots.stream()
+                .collect(Collectors.groupingBy(AccountSlot::getAccountItemId));
+
         return items.stream().map(item -> {
             AdminInventoryDTO dto = new AdminInventoryDTO();
             dto.setAccountItemId(item.getAccountItemId());
@@ -198,6 +204,13 @@ public class AdminService {
 
             dto.setStatusName(
                     item.getItemStatusId() == 1 ? "Sẵn sàng" : item.getItemStatusId() == 2 ? "Đã bán" : "Lỗi");
+
+            List<AccountSlot> slots = slotsMap.get(item.getAccountItemId());
+            if (slots != null && !slots.isEmpty()) {
+                dto.setTotalSlots(slots.size());
+                dto.setSoldSlots((int) slots.stream().filter(s -> s.getSlotStatusId() == 2).count());
+                dto.setFreeSlots((int) slots.stream().filter(s -> s.getSlotStatusId() == 1).count());
+            }
             return dto;
         }).collect(Collectors.toList());
     }
@@ -232,6 +245,20 @@ public class AdminService {
                 accountSlotRepository.save(slot);
             }
         }
+    }
+
+    @Transactional
+    public void updateInventory(Integer id, InventoryRequest request) {
+        AccountItem item = accountItemRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Account item not found"));
+        item.setProductId(request.getProductId());
+        item.setAccountEmail(request.getEmailOrUsername());
+        item.setAccountPassword(request.getPassword());
+        if (request.getItemStatusId() != null) {
+            item.setItemStatusId(request.getItemStatusId());
+        }
+        item.setUpdatedAt(LocalDateTime.now());
+        accountItemRepository.save(item);
     }
 
     @Transactional
@@ -382,8 +409,8 @@ public class AdminService {
         List<ProductDTO> content = new java.util.ArrayList<>();
         if (!queryIds.isEmpty()) {
             List<Product> products = productRepository.findByProductIdInOrderByProductIdDesc(queryIds);
-            java.util.Map<Integer, String> categoryMap = categoryRepository.findAll().stream()
-                    .collect(Collectors.toMap(Category::getCategoryId, Category::getCategoryName, (a, b) -> a));
+            java.util.Map<Integer, Category> categoryMap = categoryRepository.findAll().stream()
+                    .collect(Collectors.toMap(Category::getCategoryId, c -> c, (a, b) -> a));
             content = products.stream().map(product -> {
                 ProductDTO dto = new ProductDTO();
                 dto.setProductId(product.getProductId());
@@ -394,7 +421,14 @@ public class AdminService {
                 dto.setIsContactSeller(product.getIsContactSeller());
                 dto.setIsInputEmailRequired(product.getIsInputEmailRequired());
                 dto.setProductStatusId(product.getProductStatusId());
-                dto.setCategoryName(categoryMap.getOrDefault(product.getCategoryId(), "UNKNOWN"));
+                Category cat = categoryMap.get(product.getCategoryId());
+                if (cat != null) {
+                    dto.setCategoryName(cat.getCategoryName());
+                    dto.setCategoryActive(cat.getIsActive());
+                } else {
+                    dto.setCategoryName("UNKNOWN");
+                    dto.setCategoryActive(false);
+                }
                 return dto;
             }).collect(Collectors.toList());
         }
@@ -425,6 +459,13 @@ public class AdminService {
             List<AccountItem> items = accountItemRepository.findByAccountItemIdInOrderByAccountItemIdDesc(queryIds);
             java.util.Map<Integer, String> productMap = productRepository.findAll().stream()
                     .collect(Collectors.toMap(Product::getProductId, Product::getProductName, (a, b) -> a));
+
+            List<Integer> accountItemIds = items.stream().map(AccountItem::getAccountItemId).collect(Collectors.toList());
+            List<AccountSlot> allSlots = accountItemIds.isEmpty() ? new java.util.ArrayList<>() 
+                    : accountSlotRepository.findByAccountItemIdIn(accountItemIds);
+            java.util.Map<Integer, List<AccountSlot>> slotsMap = allSlots.stream()
+                    .collect(Collectors.groupingBy(AccountSlot::getAccountItemId));
+
             content = items.stream().map(item -> {
                 AdminInventoryDTO dto = new AdminInventoryDTO();
                 dto.setAccountItemId(item.getAccountItemId());
@@ -436,6 +477,13 @@ public class AdminService {
                 dto.setProductName(productMap.getOrDefault(item.getProductId(), "UNKNOWN"));
                 dto.setStatusName(
                         item.getItemStatusId() == 1 ? "Sẵn sàng" : item.getItemStatusId() == 2 ? "Đã bán" : "Lỗi");
+
+                List<AccountSlot> slots = slotsMap.get(item.getAccountItemId());
+                if (slots != null && !slots.isEmpty()) {
+                    dto.setTotalSlots(slots.size());
+                    dto.setSoldSlots((int) slots.stream().filter(s -> s.getSlotStatusId() == 2).count());
+                    dto.setFreeSlots((int) slots.stream().filter(s -> s.getSlotStatusId() == 1).count());
+                }
                 return dto;
             }).collect(Collectors.toList());
         }

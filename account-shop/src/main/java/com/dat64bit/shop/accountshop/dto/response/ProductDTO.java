@@ -13,4 +13,5 @@ public class ProductDTO {
     private Boolean isContactSeller;
     private Boolean isInputEmailRequired;
     private Integer productStatusId;
+    private Boolean categoryActive;
 }
