@@ -52,6 +52,7 @@ target/
 
 ### IntelliJ IDEA ###
 .idea/
+.jdks/
 *.iws
 *.iml
 *.ipr

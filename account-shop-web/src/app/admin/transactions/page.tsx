@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import { API_BASE_URL } from '@/lib/config';
 
 export default function AdminTransactions() {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -32,7 +33,7 @@ export default function AdminTransactions() {
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
-      let url = `http://localhost:8080/api/admin/transactions?limit=15`;
+      let url = `${API_BASE_URL}/api/admin/transactions?limit=15`;
       if (lastId !== null) url += `&lastId=${lastId}`;
       if (statusFilter !== undefined) url += `&statusId=${statusFilter}`;
       if (debouncedKeyword.trim()) url += `&keyword=${encodeURIComponent(debouncedKeyword.trim())}`;

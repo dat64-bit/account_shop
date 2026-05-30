@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import Portal from '@/components/Portal';
+import { API_BASE_URL } from '@/lib/config';
 
 interface Product {
   productId: number;
@@ -54,13 +55,13 @@ export default function ProductDetail() {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`http://localhost:8080/api/public/catalog/products/${id}`);
+        const res = await fetch(`${API_BASE_URL}/api/public/catalog/products/${id}`);
         if (res.ok) {
           const prodData = await res.json();
           setProduct(prodData);
           
           if (!prodData.isContactSeller) {
-            const subRes = await fetch(`http://localhost:8080/api/public/catalog/products/${id}/subscriptions`);
+            const subRes = await fetch(`${API_BASE_URL}/api/public/catalog/products/${id}/subscriptions`);
             if (subRes.ok) {
               const subData = await subRes.json();
               setSubscriptions(subData);

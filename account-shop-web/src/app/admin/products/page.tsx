@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Portal from '@/components/Portal';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import { API_BASE_URL } from '@/lib/config';
 
 
 const Plus = () => (
@@ -88,13 +89,13 @@ export default function AdminProducts() {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      const catRes = await fetch('http://localhost:8080/api/admin/categories?limit=1000', { headers });
+      const catRes = await fetch(`${API_BASE_URL}/api/admin/categories?limit=1000`, { headers });
       if (catRes.ok) {
         const data = await catRes.json();
         setCategories(data.content || data || []);
       }
 
-      const durationRes = await fetch('http://localhost:8080/api/admin/subscription-plans?limit=1000', { headers });
+      const durationRes = await fetch(`${API_BASE_URL}/api/admin/subscription-plans?limit=1000`, { headers });
       if (durationRes.ok) {
         const data = await durationRes.json();
         setDurationPlans(data.content || data || []);
@@ -109,7 +110,7 @@ export default function AdminProducts() {
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
-      let url = `http://localhost:8080/api/admin/products?limit=15`;
+      let url = `${API_BASE_URL}/api/admin/products?limit=15`;
       if (lastId !== null) url += `&lastId=${lastId}`;
       if (categoryIdFilter !== undefined) url += `&categoryId=${categoryIdFilter}`;
       if (statusIdFilter !== undefined) url += `&statusId=${statusIdFilter}`;
@@ -166,7 +167,7 @@ export default function AdminProducts() {
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
-      const res = await fetch(`http://localhost:8080/api/admin/product-subscriptions?productId=${productId}&limit=100`, { headers });
+      const res = await fetch(`${API_BASE_URL}/api/admin/product-subscriptions?productId=${productId}&limit=100`, { headers });
       if (!res.ok) {
         setProductPlans([]);
         return;
@@ -264,7 +265,7 @@ export default function AdminProducts() {
     formData.append('file', file);
 
     try {
-      const res = await fetch('http://localhost:8080/api/admin/files/upload', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/files/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -292,7 +293,7 @@ export default function AdminProducts() {
     const token = localStorage.getItem('token');
     const newStatus = currentStatus === 1 ? 2 : 1;
     try {
-      await fetch(`http://localhost:8080/api/admin/products/${id}/status?statusId=${newStatus}`, {
+      await fetch(`${API_BASE_URL}/api/admin/products/${id}/status?statusId=${newStatus}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -306,8 +307,8 @@ export default function AdminProducts() {
     e.preventDefault();
     const token = localStorage.getItem('token');
     const url = editingProduct
-      ? `http://localhost:8080/api/admin/products/${editingProduct.productId}`
-      : 'http://localhost:8080/api/admin/products';
+      ? `${API_BASE_URL}/api/admin/products/${editingProduct.productId}`
+      : `${API_BASE_URL}/api/admin/products`;
     const method = editingProduct ? 'PUT' : 'POST';
 
     try {
@@ -343,7 +344,7 @@ export default function AdminProducts() {
     };
 
     try {
-      const res = await fetch('http://localhost:8080/api/admin/product-subscriptions', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/product-subscriptions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -368,7 +369,7 @@ export default function AdminProducts() {
   const handleTogglePlanStatus = async (plan: any) => {
     const token = localStorage.getItem('token');
     try {
-      await fetch(`http://localhost:8080/api/admin/product-subscriptions/${plan.productSubscriptionId}/status?isActive=${!plan.isActive}`, {
+      await fetch(`${API_BASE_URL}/api/admin/product-subscriptions/${plan.productSubscriptionId}/status?isActive=${!plan.isActive}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import { API_BASE_URL } from '@/lib/config';
 
 export default function AdminTickets() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -39,7 +40,7 @@ export default function AdminTickets() {
 
     setLoading(true);
     try {
-      let url = `http://localhost:8080/api/admin/tickets?limit=15`;
+      let url = `${API_BASE_URL}/api/admin/tickets?limit=15`;
       if (lastId !== null) url += `&lastId=${lastId}`;
       if (statusFilter !== undefined) url += `&statusId=${statusFilter}`;
       if (debouncedKeyword.trim()) url += `&keyword=${encodeURIComponent(debouncedKeyword.trim())}`;
@@ -70,7 +71,7 @@ export default function AdminTickets() {
   const fetchTicketReplies = async (ticketId: number) => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/tickets/${ticketId}/replies`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/tickets/${ticketId}/replies`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -94,7 +95,7 @@ export default function AdminTickets() {
     if (!adminReply.trim()) return;
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/tickets/${selectedTicket.ticketId}/replies`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/tickets/${selectedTicket.ticketId}/replies`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: adminReply })
@@ -115,7 +116,7 @@ export default function AdminTickets() {
   const handleResolveTicket = async (newStatus: number) => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:8080/api/admin/tickets/${selectedTicket.ticketId}/status?statusId=${newStatus}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/tickets/${selectedTicket.ticketId}/status?statusId=${newStatus}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });

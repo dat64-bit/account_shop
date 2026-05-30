@@ -6,6 +6,7 @@ import Hero from '@/components/Hero';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { API_BASE_URL } from '@/lib/config';
 
 interface Category { categoryId: number; categoryName: string; description: string; }
 interface Product { productId: number; productName: string; categoryName: string; imageUrl?: string; }
@@ -33,11 +34,11 @@ export default function Home() {
       
       try {
         const [catRes, prodRes] = await Promise.all([
-          fetch('http://localhost:8080/api/public/catalog/categories', { 
+          fetch(`${API_BASE_URL}/api/public/catalog/categories`, { 
             signal: controller.signal,
             cache: 'no-cache' 
           }),
-          fetch('http://localhost:8080/api/public/catalog/products', { 
+          fetch(`${API_BASE_URL}/api/public/catalog/products`, { 
             signal: controller.signal,
             cache: 'no-cache'
           }),

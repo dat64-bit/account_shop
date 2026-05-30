@@ -5,6 +5,7 @@ import Portal from '@/components/Portal';
 import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import { API_BASE_URL } from '@/lib/config';
 
 const Plus = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -34,7 +35,7 @@ export default function AdminPlans() {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      const productsRes = await fetch('http://localhost:8080/api/public/catalog/products');
+      const productsRes = await fetch(`${API_BASE_URL}/api/public/catalog/products`);
       let productsData: any[] = [];
       if (productsRes.ok) {
         productsData = await productsRes.json();
@@ -43,7 +44,7 @@ export default function AdminPlans() {
         showToast('Lỗi tải danh sách sản phẩm.', 'error');
       }
 
-      const durationRes = await fetch('http://localhost:8080/api/admin/subscription-plans?limit=100', { headers });
+      const durationRes = await fetch(`${API_BASE_URL}/api/admin/subscription-plans?limit=100`, { headers });
       let durationData: any[] = [];
       if (durationRes.ok) {
         const durationJson = await durationRes.json();
@@ -66,7 +67,7 @@ export default function AdminPlans() {
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
-      let url = `http://localhost:8080/api/admin/product-subscriptions?limit=15`;
+      let url = `${API_BASE_URL}/api/admin/product-subscriptions?limit=15`;
       if (lastId !== null) url += `&lastId=${lastId}`;
       if (productIdFilter !== undefined) url += `&productId=${productIdFilter}`;
 
@@ -144,7 +145,7 @@ export default function AdminPlans() {
   const handleToggleStatus = async (id: number, currentActive: boolean) => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:8080/api/admin/product-subscriptions/${id}/status?isActive=${!currentActive}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/product-subscriptions/${id}/status?isActive=${!currentActive}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -172,7 +173,7 @@ export default function AdminPlans() {
     if (editingSub) body.productSubscriptionId = editingSub.productSubscriptionId;
 
     try {
-      const res = await fetch('http://localhost:8080/api/admin/product-subscriptions', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/product-subscriptions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body)

@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Portal from '@/components/Portal';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import { API_BASE_URL } from '@/lib/config';
 
 interface Order {
   orderId: number;
@@ -97,7 +98,7 @@ export default function Dashboard() {
     if (!token) return;
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
-      let url = `http://localhost:8080/api/v1/orders/my-orders?limit=15`;
+      let url = `${API_BASE_URL}/api/v1/orders/my-orders?limit=15`;
       if (lastId) url += `&lastId=${lastId}`;
       if (currentStatusFilter !== undefined) url += `&statusId=${currentStatusFilter}`;
       if (currentKeyword.trim()) url += `&keyword=${encodeURIComponent(currentKeyword.trim())}`;
@@ -117,7 +118,7 @@ export default function Dashboard() {
     if (!token) return;
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
-      let url = `http://localhost:8080/api/v1/tickets/my-tickets?limit=15`;
+      let url = `${API_BASE_URL}/api/v1/tickets/my-tickets?limit=15`;
       if (lastId) url += `&lastId=${lastId}`;
       if (currentStatusFilter !== undefined) url += `&statusId=${currentStatusFilter}`;
       
@@ -214,7 +215,7 @@ export default function Dashboard() {
     if (!token) return;
 
     try {
-      const response = await fetch('http://localhost:8080/api/v1/tickets', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/tickets`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

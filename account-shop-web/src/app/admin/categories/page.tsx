@@ -6,6 +6,7 @@ import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
 import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import { API_BASE_URL } from '@/lib/config';
 
 const Plus = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -52,7 +53,7 @@ export default function AdminCategories() {
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
-      let url = `http://localhost:8080/api/admin/categories?limit=15`;
+      let url = `${API_BASE_URL}/api/admin/categories?limit=15`;
       if (lastId !== null) url += `&lastId=${lastId}`;
       if (isActiveFilter !== undefined) url += `&isActive=${isActiveFilter}`;
       if (debouncedKeyword.trim()) url += `&keyword=${encodeURIComponent(debouncedKeyword.trim())}`;
@@ -123,7 +124,7 @@ export default function AdminCategories() {
     const updatedCategory = { ...target, isActive: !target.isActive };
     const actionText = updatedCategory.isActive ? 'Bật' : 'Tắt';
     try {
-      const res = await fetch('http://localhost:8080/api/admin/categories', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(updatedCategory)
@@ -150,7 +151,7 @@ export default function AdminCategories() {
       ...(editingCategory ? { categoryId: editingCategory.categoryId } : {})
     };
     try {
-      const res = await fetch('http://localhost:8080/api/admin/categories', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body)

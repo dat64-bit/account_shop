@@ -5,6 +5,7 @@ import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
 import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import { API_BASE_URL } from '@/lib/config';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
@@ -39,7 +40,7 @@ export default function AdminUsers() {
 
     setLoading(true);
     try {
-      let url = `http://localhost:8080/api/admin/users?limit=15`;
+      let url = `${API_BASE_URL}/api/admin/users?limit=15`;
       if (lastId !== null) url += `&lastId=${lastId}`;
       if (statusIdFilter !== undefined) url += `&statusId=${statusIdFilter}`;
       if (roleIdFilter !== undefined) url += `&roleId=${roleIdFilter}`;
@@ -120,7 +121,7 @@ export default function AdminUsers() {
     const actionText = isLocking ? 'khóa' : 'mở khóa';
 
     try {
-      const res = await fetch(`http://localhost:8080/api/admin/users/${pendingUser.accountId}/status?statusId=${newStatus}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/users/${pendingUser.accountId}/status?statusId=${newStatus}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });

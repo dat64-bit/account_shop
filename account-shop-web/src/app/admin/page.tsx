@@ -16,6 +16,7 @@ import {
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/lib/config';
 
 ChartJS.register(
   CategoryScale, LinearScale, PointElement, LineElement,
@@ -83,7 +84,7 @@ export default function AdminOverview() {
     if (!token) return;
 
     try {
-      const res = await fetch('http://localhost:8080/api/admin/dashboard', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/dashboard`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) setStats(await res.json());
