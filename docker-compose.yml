@@ -1,0 +1,27 @@
+# docker-compose.yml — Chạy trên DigitalOcean VPS
+# File này được dùng bởi CI/CD pipeline để restart containers sau khi deploy.
+#
+# CÁC FILE .env ĐỌC TỪ SERVER (không commit lên git):
+#   ./account-shop/.env        — DB, JWT, Cloudinary, SePay
+#   ./account-shop-web/.env    — NEXT_PUBLIC_API_URL
+
+services:
+  backend:
+    image: ghcr.io/dat64-bit/account-shop-backend:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./account-shop/.env
+    # Backend đọc .env qua spring.config.import=optional:file:.env
+    # SQL Server chạy trực tiếp trên host — kết nối qua IP server (không phải localhost)
+
+  frontend:
+    image: ghcr.io/dat64-bit/account-shop-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./account-shop-web/.env
+    depends_on:
+      - backend

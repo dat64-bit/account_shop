@@ -1,0 +1,9 @@
+# Ép LF cho các file chạy trên Linux/server
+*.sh        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+Dockerfile  text eol=lf
+
+# Windows files giữ CRLF
+*.cmd  text eol=crlf
+*.bat  text eol=crlf

@@ -1,0 +1,105 @@
+name: CD — Deploy lên VPS
+
+# Chỉ chạy khi push trực tiếp lên main (sau khi merge PR)
+# Không chạy khi tạo PR (để tránh deploy code chưa review)
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # ──────────────────────────────────────────────
+  # Job 1: Build và push Docker image Backend
+  # ──────────────────────────────────────────────
+  build-backend:
+    name: Build Backend Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # Cần để push lên GHCR
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Đăng nhập GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}   # Token tự động, không cần tạo thủ công
+
+      - name: Set up Docker Buildx (build nhanh hơn, hỗ trợ cache)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build và push image Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./account-shop
+          push: true
+          tags: ghcr.io/dat64-bit/account-shop-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ──────────────────────────────────────────────
+  # Job 2: Build và push Docker image Frontend
+  # ──────────────────────────────────────────────
+  build-frontend:
+    name: Build Frontend Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Đăng nhập GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build và push image Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./account-shop-web
+          push: true
+          tags: ghcr.io/dat64-bit/account-shop-frontend:latest
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://vinatechsmartmanufacturing.site
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ──────────────────────────────────────────────
+  # Job 3: SSH vào VPS và deploy
+  # Chỉ chạy sau khi cả 2 image đã build thành công
+  # ──────────────────────────────────────────────
+  deploy:
+    name: Deploy lên VPS
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]   # Đợi cả 2 job build xong
+
+    steps:
+      - name: SSH vào server và chạy docker compose
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            # Di chuyển đến thư mục dự án trên server
+            cd ~/account_shop
+
+            # Pull image mới nhất từ GHCR
+            docker compose pull
+
+            # Restart containers với image mới (không downtime với --no-deps)
+            docker compose up -d
+
+            # Dọn dẹp image cũ để tránh đầy ổ cứng
+            docker image prune -f
