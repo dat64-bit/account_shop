@@ -6,7 +6,6 @@ import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
 import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
-import { API_BASE_URL } from '@/lib/config';
 import api from '@/lib/axios';
 
 const Plus = () => (

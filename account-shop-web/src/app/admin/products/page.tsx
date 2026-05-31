@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Portal from '@/components/Portal';
 import { AdminPagination } from '@/components/admin/AdminPagination';
-import { API_BASE_URL } from '@/lib/config';
 import api from '@/lib/axios';
 
 
@@ -78,7 +77,7 @@ export default function AdminProducts() {
   const [pendingStatusId, setPendingStatusId] = useState<number | null>(null);
 
   // Notifications
-  const [toast, setToast] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -410,8 +409,8 @@ export default function AdminProducts() {
                       <td className="admin-actions-cell">
                         <div className="admin-table-actions">
                           <button className="btn-admin-action view" onClick={() => handleOpenDetails(p)}>Chi tiết</button>
-                          <button 
-                            className={`btn-admin-action ${p.productStatusId === 1 ? 'lock' : 'edit'}`} 
+                          <button
+                            className={`btn-admin-action ${p.productStatusId === 1 ? 'lock' : 'edit'}`}
                             onClick={() => handleToggleProductStatus(p.productId, p.productStatusId)}
                           >
                             {p.productStatusId === 1 ? 'Dừng' : 'Bán lại'}
@@ -578,7 +577,7 @@ export default function AdminProducts() {
                   </div>
                   <div className="admin-form-group">
                     <label className="admin-label">Hình ảnh sản phẩm</label>
-                    
+
                     {uploading ? (
                       <div className="admin-image-empty">
                         <div className="admin-upload-spinner"></div>
@@ -692,21 +691,21 @@ export default function AdminProducts() {
                 {pendingStatusId === 2 ? 'Xác nhận ngừng bán?' : 'Xác nhận mở bán lại?'}
               </h3>
               <p className="confirm-desc">
-                {pendingStatusId === 2 
-                  ? 'Sản phẩm sẽ không còn hiển thị trên trang chủ và khách hàng không thể đặt mua.' 
+                {pendingStatusId === 2
+                  ? 'Sản phẩm sẽ không còn hiển thị trên trang chủ và khách hàng không thể đặt mua.'
                   : 'Sản phẩm sẽ hiển thị công khai trên cửa hàng để khách hàng có thể mua sắm.'}
               </p>
               <div className="confirm-actions">
-                <button 
-                  className="btn-confirm-cancel" 
+                <button
+                  className="btn-confirm-cancel"
                   onClick={() => setStatusConfirmOpen(false)}
                 >
                   Hủy bỏ
                 </button>
-                <button 
+                <button
                   className={`btn-confirm-action ${pendingStatusId === 2 ? 'danger' : ''}`}
                   onClick={() => {
-                    setProductForm({...productForm, productStatusId: pendingStatusId!});
+                    setProductForm({ ...productForm, productStatusId: pendingStatusId! });
                     setStatusConfirmOpen(false);
                     showToast('success', 'Đã thay đổi trạng thái niêm yết.');
                   }}

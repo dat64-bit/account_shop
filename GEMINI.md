@@ -16,6 +16,7 @@ This repository contains two main subsystems:
 ## 🎨 UI/UX Design Conventions (Frontend)
 - **Premium Aesthetics**: Maintain a professional, high-quality "Dashboard" look. Use smooth micro-animations (`animate-in`, `zoom-in`, `slide-in-from-right`), appropriate shadows, and clear typography.
 - **CSS Standardization (See ADR-004)**: Avoid inline styles and ad-hoc utility classes. All admin table containers, tables, badges, and action buttons must use standardized `.admin-*` classes defined in `globals.css`.
+- **CSS Reuse**: When implementing or modifying user interfaces, always inspect the existing CSS declarations in `globals.css` first to check if they can be reused. Do not write duplicate styles or new utility classes if existing classes can be applied or extended. (Khi phát triển hoặc sửa đổi giao diện, bắt buộc kiểm tra các class CSS đã có trong `globals.css` để tái sử dụng tối đa, tránh viết trùng lặp).
 - **Table Cell & Row Alignment (See ADR-004)**: Never apply `display: flex` directly to a `td` cell wrapper as it breaks vertical row alignment. Wrap action buttons inside a `.admin-table-actions` container inside the cell instead.
 - **In-Page Dashboard Navigation (See ADR-005)**: Replace large overlay modals for complex edit/view tasks with a local view state machine (`'list' | 'details' | 'form'`), rendering details and workspaces directly in-page.
 - **Modals & Toasts**: Do not use native browser `alert()` or `confirm()`. Use the custom `admin-modal-overlay` and `admin-toast-container` components (See ADR-003).
