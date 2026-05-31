@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Sidebar from '@/components/admin/Sidebar';
@@ -9,6 +10,34 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const storedUserStr = localStorage.getItem('user_info');
+    if (!storedUserStr) {
+      window.location.href = '/?error=login_required';
+      return;
+    }
+    try {
+      const storedUser = JSON.parse(storedUserStr);
+      if (storedUser.role !== 'ROLE_ADMIN') {
+        window.location.href = '/?error=unauthorized';
+        return;
+      }
+      setChecking(false);
+    } catch {
+      window.location.href = '/?error=login_required';
+    }
+  }, []);
+
+  if (checking) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg, #f8fafc)' }}>
+        <div style={{ fontSize: 14, color: 'var(--text-sub, #64748b)' }}>Đang xác thực quyền truy cập...</div>
+      </div>
+    );
+  }
+
   return (
     <>
       <Header />

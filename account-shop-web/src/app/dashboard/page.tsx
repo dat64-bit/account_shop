@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import Portal from '@/components/Portal';
 import { AdminPagination } from '@/components/admin/AdminPagination';
 import { API_BASE_URL } from '@/lib/config';
+import api from '@/lib/axios';
 
 interface Order {
   orderId: number;
@@ -67,6 +68,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [checking, setChecking] = useState(true);
 
   // Tickets
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -94,19 +96,15 @@ export default function Dashboard() {
   const [isMounted, setIsMounted] = useState(false);
 
   const fetchOrders = async (lastId: number | null, page: number, currentStatusFilter = orderStatusFilter, currentKeyword = orderKeyword) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
     try {
-      const headers = { 'Authorization': `Bearer ${token}` };
-      let url = `${API_BASE_URL}/api/v1/orders/my-orders?limit=15`;
+      let url = `/v1/orders/my-orders?limit=15`;
       if (lastId) url += `&lastId=${lastId}`;
       if (currentStatusFilter !== undefined) url += `&statusId=${currentStatusFilter}`;
       if (currentKeyword.trim()) url += `&keyword=${encodeURIComponent(currentKeyword.trim())}`;
       
-      const res = await fetch(url, { headers });
-      const data = await res.json();
-      setOrders(data.content || []);
-      setOrdersHasMore(data.hasMore || false);
+      const res = await api.get(url);
+      setOrders(res.data.content || []);
+      setOrdersHasMore(res.data.hasMore || false);
       setCurrentOrdersPage(page);
     } catch (e) {
       console.error("Error fetching orders:", e);
@@ -114,18 +112,14 @@ export default function Dashboard() {
   };
 
   const fetchTickets = async (lastId: number | null, page: number, currentStatusFilter = ticketStatusFilter) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
     try {
-      const headers = { 'Authorization': `Bearer ${token}` };
-      let url = `${API_BASE_URL}/api/v1/tickets/my-tickets?limit=15`;
+      let url = `/v1/tickets/my-tickets?limit=15`;
       if (lastId) url += `&lastId=${lastId}`;
       if (currentStatusFilter !== undefined) url += `&statusId=${currentStatusFilter}`;
       
-      const res = await fetch(url, { headers });
-      const data = await res.json();
-      setTickets(data.content || []);
-      setTicketsHasMore(data.hasMore || false);
+      const res = await api.get(url);
+      setTickets(res.data.content || []);
+      setTicketsHasMore(res.data.hasMore || false);
       setCurrentTicketsPage(page);
     } catch (e) {
       console.error("Error fetching tickets:", e);
@@ -175,12 +169,22 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = '/';
+    const storedUserStr = localStorage.getItem('user_info');
+    if (!storedUserStr) {
+      window.location.href = '/?error=login_required';
       return;
     }
-    setIsMounted(true);
+    try {
+      const storedUser = JSON.parse(storedUserStr);
+      if (storedUser.role !== 'ROLE_CUSTOMER') {
+        window.location.href = '/?error=unauthorized';
+        return;
+      }
+      setChecking(false);
+      setIsMounted(true);
+    } catch {
+      window.location.href = '/?error=login_required';
+    }
   }, []);
 
   useEffect(() => {
@@ -211,38 +215,33 @@ export default function Dashboard() {
       return;
     }
 
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/tickets`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          orderDetailId: selectedOrderId,
-          issueType: 'ORDER_ISSUE',
-          message: ticketMessage
-        })
+      const response = await api.post('/v1/tickets', {
+        orderDetailId: selectedOrderId,
+        issueType: 'ORDER_ISSUE',
+        message: ticketMessage
       });
 
-      if (response.ok) {
-        setShowTicketModal(false);
-        setTicketMessage('');
-        setActiveTab('tickets');
-        // Reset and refresh tickets
-        setTicketsCursors([null]);
-        await fetchTickets(null, 1);
-        alert('Yêu cầu hỗ trợ đã được gửi thành công!');
-      } else {
-        alert('Gửi yêu cầu thất bại, vui lòng thử lại.');
-      }
+      setShowTicketModal(false);
+      setTicketMessage('');
+      setActiveTab('tickets');
+      // Reset and refresh tickets
+      setTicketsCursors([null]);
+      await fetchTickets(null, 1);
+      alert('Yêu cầu hỗ trợ đã được gửi thành công!');
     } catch (error) {
       console.error("Error submitting ticket:", error);
+      alert('Gửi yêu cầu thất bại, vui lòng thử lại.');
     }
   };
+
+  if (checking) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg, #f8fafc)' }}>
+        <div style={{ fontSize: 14, color: 'var(--text-sub, #64748b)' }}>Đang xác thực quyền truy cập...</div>
+      </div>
+    );
+  }
 
   return (
     <>

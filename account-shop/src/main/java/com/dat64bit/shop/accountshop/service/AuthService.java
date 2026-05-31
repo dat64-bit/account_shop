@@ -50,11 +50,40 @@ public class AuthService {
         Account account = accountRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Lưu active token vào DB để phục vụ kiểm tra/thu hồi phiên đăng nhập
+        account.setToken(jwt);
+        accountRepository.save(account);
+
         Role role = roleRepository.findById(account.getRoleId())
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
         AuthResponse response = new AuthResponse();
         response.setToken(jwt);
+        response.setType("Bearer");
+        response.setAccountId(account.getAccountId());
+        response.setUsername(account.getUsername());
+        response.setEmail(account.getEmail());
+        response.setRole(role.getRoleName());
+        return response;
+    }
+
+    public void logout(String username) {
+        Account account = accountRepository.findByUsername(username).orElse(null);
+        if (account != null) {
+            account.setToken(null);
+            accountRepository.save(account);
+        }
+    }
+
+    public AuthResponse getCurrentUser(String username) {
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+        Role role = roleRepository.findById(account.getRoleId())
+                .orElseThrow(() -> new RuntimeException("Role not found"));
+
+        AuthResponse response = new AuthResponse();
+        response.setToken(account.getToken());
         response.setType("Bearer");
         response.setAccountId(account.getAccountId());
         response.setUsername(account.getUsername());

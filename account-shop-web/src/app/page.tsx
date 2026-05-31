@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/config';
+import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 
 interface Category { categoryId: number; categoryName: string; description: string; }
 interface Product { productId: number; productName: string; categoryName: string; imageUrl?: string; }
@@ -23,6 +24,24 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast, showToast } = useAdminToast();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const error = params.get('error');
+      if (error) {
+        if (error === 'unauthorized') {
+          showToast("Bạn không có quyền truy cập tính năng này!", "error");
+        } else if (error === 'login_required') {
+          showToast("Vui lòng đăng nhập để sử dụng tính năng này!", "error");
+        }
+        // Xóa tham số khỏi URL mà không reload trang
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, [showToast]);
 
   useEffect(() => {
     let isMounted = true;
@@ -76,6 +95,7 @@ export default function Home() {
 
   return (
     <>
+      <AdminToast toast={toast} />
       <Header />
       <main style={{ background: 'var(--bg)', minHeight: '100vh', paddingBottom: 40 }}>
         <div className="container" style={{ paddingTop: 16 }}>

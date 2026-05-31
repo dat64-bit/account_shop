@@ -4,6 +4,7 @@ import com.dat64bit.shop.accountshop.security.CustomUserDetailsService;
 import com.dat64bit.shop.accountshop.security.JwtAuthEntryPoint;
 import com.dat64bit.shop.accountshop.security.JwtAuthFilter;
 import com.dat64bit.shop.accountshop.security.JwtTokenProvider;
+import com.dat64bit.shop.accountshop.repository.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -41,9 +42,12 @@ public class SecurityConfig {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    @Autowired
+    private AccountRepository accountRepository;
+
     @Bean
     public JwtAuthFilter jwtAuthFilter() {
-        return new JwtAuthFilter(jwtTokenProvider, userDetailsService);
+        return new JwtAuthFilter(jwtTokenProvider, userDetailsService, accountRepository);
     }
 
     @Bean

@@ -2,11 +2,12 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import api from '@/lib/axios';
 
 interface User {
   sub: string;
   role: string;
-  exp: number;
+  email?: string;
 }
 
 interface AuthContextType {
@@ -21,33 +22,64 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    // Khôi phục nhanh thông tin user từ localStorage để hiển thị UI lập tức
+    const storedUser = localStorage.getItem('user_info');
+    if (storedUser) {
       try {
-        const decoded = jwtDecode<User>(token);
-        if (decoded.exp * 1000 < Date.now()) {
-          logout();
-        } else {
-          setUser(decoded);
-        }
-      } catch {
+        setUser(JSON.parse(storedUser));
+      } catch {}
+    }
+
+    // Gọi API /me để kiểm tra phiên đăng nhập thực tế từ HttpOnly Cookie
+    const checkSession = async () => {
+      try {
+        const res = await api.get('/auth/me');
+        const rawRole = res.data.role || '';
+        const role = rawRole.startsWith('ROLE_') ? rawRole : `ROLE_${rawRole.toUpperCase()}`;
+        const userData = {
+          sub: res.data.username,
+          role: role,
+          email: res.data.email
+        };
+        setUser(userData);
+        localStorage.setItem('user_info', JSON.stringify(userData));
+      } catch (err) {
+        // Token không hợp lệ hoặc hết hạn -> Đăng xuất
         logout();
       }
-    }
+    };
+
+    checkSession();
   }, []);
 
   const login = (token: string) => {
-    localStorage.setItem('token', token);
+    localStorage.setItem('token', token); // Hỗ trợ tương thích ngược nếu cần
     try {
-      setUser(jwtDecode<User>(token));
+      const decoded = jwtDecode<any>(token);
+      const rawRole = decoded.role || '';
+      const role = rawRole.startsWith('ROLE_') ? rawRole : `ROLE_${rawRole.toUpperCase()}`;
+      const userData = {
+        sub: decoded.sub,
+        role: role,
+        email: decoded.email || ''
+      };
+      setUser(userData);
+      localStorage.setItem('user_info', JSON.stringify(userData));
     } catch (e) {
-      console.error("Invalid token format");
+      console.error("Invalid token format", e);
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (e) {
+      console.error("Logout API error:", e);
+    }
     localStorage.removeItem('token');
+    localStorage.removeItem('user_info');
     setUser(null);
+    window.location.href = '/';
   };
 
   return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>;
