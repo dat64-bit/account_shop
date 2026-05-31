@@ -2018,9 +2018,13 @@ a {
   max-width: 500px;
   border-radius: 16px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
 }
 
 .modal-container.sm { max-width: 400px; }
+.modal-container.lg { max-width: 800px; }
 
 .modal-header {
   padding: 20px 24px;
@@ -2044,7 +2048,11 @@ a {
 
 .btn-close:hover { background: #f1f5f9; color: #ef4444; }
 
-.modal-body { padding: 24px; }
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
 
 .modal-footer {
   display: flex;
@@ -3064,6 +3072,7 @@ a {
 
 /* Admin Utilities */
 .admin-flex-center { display: flex; align-items: center; gap: 12px; }
+.admin-cell-stacked { display: flex; flex-direction: column; gap: 2px; }
 .admin-text-bold  { font-weight: 700; }
 .admin-text-muted { color: var(--text-muted); font-size: 13px; }
 .admin-text-price { font-weight: 800; color: var(--text-main); font-family: monospace; }
@@ -3594,4 +3603,52 @@ body:has(.auth-overlay) .header-wrapper {
   .mini-chart-wrapper { display: none; }
 
   .auth-card { padding: 20px 14px; }
+}
+
+.admin-modal-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-modal-divider {
+  border-top: 1px solid var(--border);
+  margin: 24px 0;
+}
+
+.admin-modal-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.admin-modal-detail-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main);
+  font-family: var(--font-outfit), sans-serif;
+}
+
+.admin-info-box-margin {
+  margin-bottom: 20px;
+}
+
+.admin-modal-form-grid-margin {
+  margin-bottom: 12px;
+}
+
+.admin-confirm-input-label {
+  font-weight: 700;
+  display: block;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  color: var(--text-main);
+  text-align: left;
+}
+
+.admin-confirm-desc-text {
+  margin-bottom: 12px;
+  text-align: left;
 }
