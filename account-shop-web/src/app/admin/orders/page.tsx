@@ -88,26 +88,24 @@ export default function AdminOrders() {
     <div className="space-y-6">
       <AdminTableCard title="Quản lý Đơn hàng">
         {/* Bộ lọc động */}
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1', minWidth: '200px' }}>
+        <div className="admin-filter-bar">
+          <div className="admin-filter-search-wrapper">
             <input
               type="text"
-              placeholder="Tìm theo tên khách hàng (username)..."
-              className="form-input"
+              placeholder="Tìm theo mã đơn, username khách hàng hoặc tên sản phẩm..."
+              className="admin-filter-input"
               value={keyword}
               onChange={e => setKeyword(e.target.value)}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
             />
           </div>
-          <div style={{ width: '180px' }}>
+          <div className="admin-filter-select-wrapper">
             <select
-              className="form-input"
+              className="admin-filter-select"
               value={statusFilter === undefined ? 'all' : statusFilter.toString()}
               onChange={e => {
                 const val = e.target.value;
                 setStatusFilter(val === 'all' ? undefined : parseInt(val));
               }}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="2">Hoàn tất (Completed)</option>
@@ -117,7 +115,7 @@ export default function AdminOrders() {
         </div>
 
         {loading ? (
-          <div className="animate-pulse" style={{ padding: '20px', textAlign: 'center' }}>Đang tải danh sách đơn hàng...</div>
+          <div className="table-loading-cell">Đang tải danh sách đơn hàng...</div>
         ) : (
           <>
             <div className="table-responsive">
@@ -136,7 +134,7 @@ export default function AdminOrders() {
                 <tbody>
                   {orders.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '20px' }}>Không tìm thấy đơn hàng nào.</td>
+                      <td className="table-empty-cell" colSpan={7}>Không tìm thấy đơn hàng nào.</td>
                     </tr>
                   ) : (
                     orders.map(order => (
@@ -144,7 +142,7 @@ export default function AdminOrders() {
                         <td>#{order.orderId}</td>
                         <td>{order.username || 'Không xác định'}</td>
                         <td className="admin-text-bold">{order.productName || 'N/A'}</td>
-                        <td style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={order.accountInfo}>
+                        <td className="table-truncate-cell" title={order.accountInfo}>
                           {order.accountInfo || <span className="text-slate-400 italic">Chưa giao hàng</span>}
                         </td>
                         <td className="admin-text-price">{order.totalAmount.toLocaleString()}đ</td>

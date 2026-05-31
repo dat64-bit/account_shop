@@ -331,26 +331,24 @@ export default function AdminProducts() {
           </div>
 
           {/* Bộ lọc động */}
-          <div style={{ display: 'flex', gap: '16px', padding: '20px 24px', borderBottom: '1px solid var(--border)', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1', minWidth: '200px' }}>
+          <div className="admin-filter-bar with-border">
+            <div className="admin-filter-search-wrapper">
               <input
                 type="text"
                 placeholder="Tìm theo tên sản phẩm..."
-                className="form-input"
+                className="admin-filter-input"
                 value={keyword}
                 onChange={e => setKeyword(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
               />
             </div>
-            <div style={{ width: '200px' }}>
+            <div className="admin-filter-select-wrapper w-200">
               <select
-                className="form-input"
+                className="admin-filter-select"
                 value={categoryIdFilter === undefined ? 'all' : categoryIdFilter}
                 onChange={e => {
                   const val = e.target.value;
                   setCategoryIdFilter(val === 'all' ? undefined : Number(val));
                 }}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
               >
                 <option value="all">Tất cả danh mục</option>
                 {categories.map(cat => (
@@ -358,15 +356,14 @@ export default function AdminProducts() {
                 ))}
               </select>
             </div>
-            <div style={{ width: '180px' }}>
+            <div className="admin-filter-select-wrapper">
               <select
-                className="form-input"
+                className="admin-filter-select"
                 value={statusIdFilter === undefined ? 'all' : statusIdFilter}
                 onChange={e => {
                   const val = e.target.value;
                   setStatusIdFilter(val === 'all' ? undefined : Number(val));
                 }}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
               >
                 <option value="all">Tất cả trạng thái</option>
                 <option value="1">Đang kinh doanh</option>
@@ -389,7 +386,7 @@ export default function AdminProducts() {
               <tbody>
                 {products.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>Không tìm thấy sản phẩm nào.</td>
+                    <td className="table-empty-cell" colSpan={5}>Không tìm thấy sản phẩm nào.</td>
                   </tr>
                 ) : (
                   products.map(p => (
@@ -397,9 +394,9 @@ export default function AdminProducts() {
                       <td>#{p.productId}</td>
                       <td>
                         {p.imageUrl ? (
-                          <img src={p.imageUrl} alt={p.productName} style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover' }} />
+                          <img src={p.imageUrl} alt={p.productName} className="product-thumb" />
                         ) : (
-                          <div style={{ width: 40, height: 40, borderRadius: 4, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                          <div className="product-thumb-placeholder">
                             <Plus />
                           </div>
                         )}
@@ -443,9 +440,8 @@ export default function AdminProducts() {
             <div className="admin-header-left">
               <button
                 onClick={() => setView('list')}
-                className="btn-back-circle"
-                title="Quay lại danh sách"
-                style={{ width: '48px', height: '48px' }}
+                className="btn-back-circle lg"
+                title="Quáy lại danh sách"
               >
                 <ArrowLeft />
               </button>
@@ -459,7 +455,6 @@ export default function AdminProducts() {
                 type="button"
                 className="btn-view-account"
                 onClick={() => setView('list')}
-                style={{ padding: '12px 24px', fontWeight: '700' }}
               >
                 Hủy bỏ
               </button>
@@ -467,7 +462,6 @@ export default function AdminProducts() {
                 type="button"
                 className="btn-primary"
                 onClick={(e) => handleSaveProduct(e as any)}
-                style={{ padding: '12px 28px', gap: '10px', display: 'flex', alignItems: 'center' }}
               >
                 <Save /> <span>Lưu thay đổi</span>
               </button>
@@ -835,7 +829,7 @@ export default function AdminProducts() {
                       <th>Giá bán</th>
                       <th>Thời hạn</th>
                       <th>Trạng thái</th>
-                      <th style={{ textAlign: 'right' }}>Hành động</th>
+                      <th className="th-right">Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -915,8 +909,8 @@ export default function AdminProducts() {
       {/* Modal nhỏ cho việc nhập giá (Vẫn dùng Popup vì đây là form cực đơn giản - Confirm style) */}
       {planModalOpen && (
         <Portal>
-          <div className="modal-overlay" style={{ zIndex: 1100 }}>
-            <div className="modal-container animate-in" style={{ maxWidth: '400px' }}>
+          <div className="modal-overlay z-top">
+            <div className="modal-container animate-in sm">
               <div className="modal-header">
                 <h3>{editingPlan ? 'Sửa giá gói' : 'Thêm giá gói'}</h3>
                 <button className="btn-close" onClick={() => setPlanModalOpen(false)}>&times;</button>

@@ -73,10 +73,10 @@ export default function Header() {
       <header className={`header-wrapper ${scrolled ? 'scrolled' : ''}`}>
         {/* Top Bar */}
         <div className="container header-main">
-          <Link href="/" className="logo" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link href="/" className="logo logo-inner">
             <img src="/logo.png" alt="VanDatPremium Logo" className="logo-img" />
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-              VanDat<span style={{ fontSize: 16 }}>Premium</span>
+            <div className="logo-text-group">
+              VanDat<span className="logo-sub">Premium</span>
             </div>
           </Link>
 

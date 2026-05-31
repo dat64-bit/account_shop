@@ -174,16 +174,15 @@ export default function AdminPlans() {
           }
         >
           {/* Bộ lọc động */}
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ width: '220px' }}>
+          <div className="admin-filter-bar">
+            <div className="admin-filter-select-wrapper w-220">
               <select
-                className="form-input"
+                className="admin-filter-select"
                 value={productIdFilter === undefined ? 'all' : productIdFilter.toString()}
                 onChange={e => {
                   const val = e.target.value;
                   setProductIdFilter(val === 'all' ? undefined : parseInt(val));
                 }}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
               >
                 <option value="all">Tất cả sản phẩm</option>
                 {products.map(p => (
@@ -194,7 +193,7 @@ export default function AdminPlans() {
           </div>
 
           {loading ? (
-            <div className="animate-pulse" style={{ padding: '20px', textAlign: 'center' }}>Đang tải danh sách gói đăng ký...</div>
+            <div className="table-loading-cell">Đang tải danh sách gói đăng ký...</div>
           ) : (
             <>
               <div className="table-responsive">
@@ -213,7 +212,7 @@ export default function AdminPlans() {
                   <tbody>
                     {plans.length === 0 ? (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: 'center', padding: '20px' }}>Không tìm thấy gói nào.</td>
+                        <td className="table-empty-cell" colSpan={7}>Không tìm thấy gói nào.</td>
                       </tr>
                     ) : (
                       plans.map(plan => (

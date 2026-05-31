@@ -109,13 +109,13 @@ export default function AdminOverview() {
         <div className="content-card mini-stat-card">
           <div className="mini-stat-header">
             <div>
-              <span className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ color: '#0369a1' }}><DollarSign /></span> Tổng doanh thu
+              <span className="stat-label-with-icon">
+                <span className="stat-icon-badge blue"><DollarSign /></span> Tổng doanh thu
               </span>
               <div className="mini-stat-value">{stats.totalRevenue?.toLocaleString()}đ</div>
               <span className="mini-stat-badge positive">+12.5%</span>
             </div>
-            <div style={{ width: 80, height: 50 }}>
+            <div className="mini-chart-wrapper">
               <Line
                 data={{
                   labels: ['', '', '', '', '', '', ''],
@@ -131,13 +131,13 @@ export default function AdminOverview() {
         <div className="content-card mini-stat-card">
           <div className="mini-stat-header">
             <div>
-              <span className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ color: '#166534' }}><UsersIcon /></span> Người dùng
+              <span className="stat-label-with-icon">
+                <span className="stat-icon-badge green"><UsersIcon /></span> Người dùng
               </span>
               <div className="mini-stat-value">{stats.totalUsers}</div>
               <span className="mini-stat-badge positive">+2.4%</span>
             </div>
-            <div style={{ width: 80, height: 50 }}>
+            <div className="mini-chart-wrapper">
               <Bar
                 data={{
                   labels: ['', '', '', '', '', '', ''],
@@ -153,13 +153,13 @@ export default function AdminOverview() {
         <div className="content-card mini-stat-card">
           <div className="mini-stat-header">
             <div>
-              <span className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ color: '#92400e' }}><PackageIcon /></span> Đơn hôm nay
+              <span className="stat-label-with-icon">
+                <span className="stat-icon-badge amber"><PackageIcon /></span> Đơn hôm nay
               </span>
               <div className="mini-stat-value">{stats.totalOrdersToday}</div>
               <span className="mini-stat-badge positive">Mới</span>
             </div>
-            <div style={{ width: 80, height: 50 }}>
+            <div className="mini-chart-wrapper">
               <Line
                 data={{
                   labels: ['', '', '', '', '', '', ''],
@@ -175,15 +175,15 @@ export default function AdminOverview() {
         <div className="content-card mini-stat-card">
           <div className="mini-stat-header">
             <div>
-              <span className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ color: '#991b1b' }}><TicketIcon /></span> Ticket chờ
+              <span className="stat-label-with-icon">
+                <span className="stat-icon-badge red"><TicketIcon /></span> Ticket chờ
               </span>
               <div className="mini-stat-value">{stats.pendingTickets}</div>
               <span className={`mini-stat-badge ${stats.pendingTickets > 0 ? 'negative' : 'positive'}`}>
                 {stats.pendingTickets > 0 ? 'Cần xử lý' : 'Ổn định'}
               </span>
             </div>
-            <div style={{ width: 80, height: 50 }}>
+            <div className="mini-chart-wrapper">
               <Bar
                 data={{
                   labels: ['', '', '', '', '', '', ''],
@@ -200,13 +200,13 @@ export default function AdminOverview() {
       <div className="content-card mt-6">
         <div className="card-header">
           <h2 className="card-title">Tổng doanh số</h2>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="chart-header-actions">
             <select className="chart-month-select">
               <option>Tháng hiện tại</option>
             </select>
           </div>
         </div>
-        <div style={{ padding: '8px 20px 20px', height: 280 }}>
+        <div className="chart-area">
           <Line
             data={{
               labels: ['6 ngày trước', '5 ngày trước', '4 ngày trước', '3 ngày trước', '2 ngày trước', '1 ngày trước', 'Hôm nay'],
@@ -234,7 +234,7 @@ export default function AdminOverview() {
           <h2 className="card-title">Sản phẩm bán chạy</h2>
           <Link href="/admin/products" className="btn-link-blue">Xem chi tiết →</Link>
         </div>
-        <div style={{ padding: '8px 20px 20px', height: 280 }}>
+        <div className="chart-area">
           <Bar
             data={{
               labels: stats.topProductNames || [],

@@ -162,26 +162,24 @@ export default function AdminCategories() {
         }
       >
         {/* Bộ lọc động */}
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1', minWidth: '200px' }}>
+        <div className="admin-filter-bar">
+          <div className="admin-filter-search-wrapper">
             <input
               type="text"
               placeholder="Tìm theo tên danh mục..."
-              className="form-input"
+              className="admin-filter-input"
               value={keyword}
               onChange={e => setKeyword(e.target.value)}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
             />
           </div>
-          <div style={{ width: '180px' }}>
+          <div className="admin-filter-select-wrapper">
             <select
-              className="form-input"
+              className="admin-filter-select"
               value={isActiveFilter === undefined ? 'all' : isActiveFilter ? 'active' : 'inactive'}
               onChange={e => {
                 const val = e.target.value;
                 setIsActiveFilter(val === 'all' ? undefined : val === 'active');
               }}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="active">Đang bật</option>
@@ -191,7 +189,7 @@ export default function AdminCategories() {
         </div>
 
         {loading ? (
-          <div className="animate-pulse" style={{ padding: '20px', textAlign: 'center' }}>Đang tải danh sách danh mục...</div>
+          <div className="table-loading-cell">Đang tải danh sách danh mục...</div>
         ) : (
           <>
             <table className="admin-table">
@@ -207,7 +205,7 @@ export default function AdminCategories() {
               <tbody>
                 {categories.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>Không tìm thấy danh mục nào.</td>
+                    <td className="table-empty-cell" colSpan={5}>Không tìm thấy danh mục nào.</td>
                   </tr>
                 ) : (
                   categories.map(cat => (

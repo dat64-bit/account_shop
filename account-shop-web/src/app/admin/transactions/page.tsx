@@ -112,26 +112,24 @@ export default function AdminTransactions() {
     <div className="space-y-6">
       <AdminTableCard title="Quản lý Giao dịch">
         {/* Bộ lọc động */}
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1', minWidth: '200px' }}>
+        <div className="admin-filter-bar">
+          <div className="admin-filter-search-wrapper">
             <input
               type="text"
               placeholder="Tìm theo tên người dùng (username)..."
-              className="form-input"
+              className="admin-filter-input"
               value={keyword}
               onChange={e => setKeyword(e.target.value)}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
             />
           </div>
-          <div style={{ width: '180px' }}>
+          <div className="admin-filter-select-wrapper">
             <select
-              className="form-input"
+              className="admin-filter-select"
               value={statusFilter === undefined ? 'all' : statusFilter.toString()}
               onChange={e => {
                 const val = e.target.value;
                 setStatusFilter(val === 'all' ? undefined : parseInt(val));
               }}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="2">Thành công (Success)</option>
@@ -142,7 +140,7 @@ export default function AdminTransactions() {
         </div>
 
         {loading ? (
-          <div className="animate-pulse" style={{ padding: '20px', textAlign: 'center' }}>Đang tải danh sách giao dịch...</div>
+          <div className="table-loading-cell">Đang tải danh sách giao dịch...</div>
         ) : (
           <>
             <div className="table-responsive">
@@ -162,7 +160,7 @@ export default function AdminTransactions() {
                 <tbody>
                   {transactions.length === 0 ? (
                     <tr>
-                      <td colSpan={8} style={{ textAlign: 'center', padding: '20px' }}>Không tìm thấy giao dịch nào.</td>
+                      <td className="table-empty-cell" colSpan={8}>Không tìm thấy giao dịch nào.</td>
                     </tr>
                   ) : (
                     transactions.map(tx => (
@@ -172,7 +170,7 @@ export default function AdminTransactions() {
                         <td className="admin-text-price">{tx.amount.toLocaleString()}đ</td>
                         <td>{tx.transactionTypeName || 'N/A'}</td>
                         <td>{tx.paymentMethodName || 'N/A'}</td>
-                        <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={tx.description}>
+                        <td className="table-truncate-cell" title={tx.description}>
                           {tx.description || '-'}
                         </td>
                         <td>

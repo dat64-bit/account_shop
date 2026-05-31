@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
-import { API_BASE_URL } from '@/lib/config';
 import api from '@/lib/axios';
 
 export default function AdminTickets() {
@@ -136,26 +135,24 @@ export default function AdminTickets() {
       <div className="space-y-6">
         <AdminTableCard title="Danh sách Ticket hỗ trợ">
           {/* Bộ lọc động */}
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1', minWidth: '200px' }}>
+          <div className="admin-filter-bar">
+            <div className="admin-filter-search-wrapper">
               <input
                 type="text"
                 placeholder="Tìm theo tên người dùng (username)..."
-                className="form-input"
+                className="admin-filter-input"
                 value={keyword}
                 onChange={e => setKeyword(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
               />
             </div>
-            <div style={{ width: '180px' }}>
+            <div className="admin-filter-select-wrapper">
               <select
-                className="form-input"
+                className="admin-filter-select"
                 value={statusFilter === undefined ? 'all' : statusFilter.toString()}
                 onChange={e => {
                   const val = e.target.value;
                   setStatusFilter(val === 'all' ? undefined : parseInt(val));
                 }}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
               >
                 <option value="all">Tất cả trạng thái</option>
                 <option value="1">Chờ xử lý (Pending)</option>
@@ -166,7 +163,7 @@ export default function AdminTickets() {
           </div>
 
           {loading ? (
-            <div className="animate-pulse" style={{ padding: '20px', textAlign: 'center' }}>Đang tải danh sách ticket...</div>
+            <div className="table-loading-cell">Đang tải danh sách ticket...</div>
           ) : (
             <>
               <div className="table-responsive">
@@ -184,7 +181,7 @@ export default function AdminTickets() {
                   <tbody>
                     {tickets.length === 0 ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '20px' }}>Không tìm thấy ticket nào.</td>
+                        <td className="table-empty-cell" colSpan={6}>Không tìm thấy ticket nào.</td>
                       </tr>
                     ) : (
                       tickets.map(t => (
@@ -226,20 +223,13 @@ export default function AdminTickets() {
               <h2 className="card-title">Xử lý Ticket #{selectedTicket.ticketId}</h2>
               <button className="btn-close" onClick={() => setSelectedTicket(null)}>&times;</button>
             </div>
-            <div className="admin-chat-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', height: 400 }}>
-              <div className="chat-messages" style={{ overflowY: 'auto', padding: 16, background: '#f8fafc', borderRadius: 8 }}>
+            <div className="admin-chat-layout">
+              <div className="chat-messages">
                 {ticketReplies.map((reply, idx) => (
-                  <div key={idx} className={`chat-bubble ${reply.isAdmin ? 'admin' : 'user'}`} style={{ marginBottom: 12, display: 'flex', flexDirection: reply.isAdmin ? 'row-reverse' : 'row' }}>
-                    <div className="bubble-content" style={{
-                      background: reply.isAdmin ? '#2563eb' : '#fff',
-                      color: reply.isAdmin ? '#fff' : '#1e293b',
-                      padding: '8px 12px',
-                      borderRadius: 12,
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                      maxWidth: '70%'
-                    }}>
+                  <div key={idx} className={`chat-bubble ${reply.isAdmin ? 'admin' : 'user'}`}>
+                    <div className={`bubble-content ${reply.isAdmin ? 'admin-bubble' : 'user-bubble'}`}>
                       {reply.message}
-                      <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{new Date(reply.createdAt).toLocaleTimeString()}</div>
+                      <div className="bubble-timestamp">{new Date(reply.createdAt).toLocaleTimeString()}</div>
                     </div>
                   </div>
                 ))}
@@ -247,7 +237,7 @@ export default function AdminTickets() {
                 {ticketReplies.length === 0 && <div className="text-center text-muted py-10">Chưa có phản hồi nào.</div>}
               </div>
 
-              <div className="chat-input-area" style={{ marginTop: 16, display: 'flex', gap: 10 }}>
+              <div className="chat-input-area">
                 <input
                   type="text"
                   className="form-input"
@@ -259,10 +249,10 @@ export default function AdminTickets() {
                 <button className="btn-primary" onClick={handleSendReply}>Gửi</button>
               </div>
 
-              <div className="admin-actions" style={{ marginTop: 20, display: 'flex', gap: 10, borderTop: '1px solid #f1f5f9', paddingTop: 16 }}>
-                <button className="btn-view-account" style={{ background: '#10b981', color: '#fff' }} onClick={() => handleResolveTicket(2)}>Xong (Hoàn tất)</button>
-                <button className="btn-view-account" style={{ background: '#f59e0b', color: '#fff' }} onClick={() => handleResolveTicket(3)}>Đang xử lý</button>
-                <button className="btn-view-account" style={{ color: '#ef4444' }} onClick={() => setSelectedTicket(null)}>Đóng hội thoại</button>
+              <div className="chat-action-bar">
+                <button className="btn-view-account btn-resolve-success" onClick={() => handleResolveTicket(2)}>Xong (Hoàn tất)</button>
+                <button className="btn-view-account btn-resolve-pending" onClick={() => handleResolveTicket(3)}>Đang xử lý</button>
+                <button className="btn-view-account btn-close-chat" onClick={() => setSelectedTicket(null)}>Đóng hội thoại</button>
               </div>
             </div>
           </div>

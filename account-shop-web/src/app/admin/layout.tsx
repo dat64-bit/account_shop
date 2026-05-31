@@ -32,8 +32,8 @@ export default function AdminLayout({
 
   if (checking) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg, #f8fafc)' }}>
-        <div style={{ fontSize: 14, color: 'var(--text-sub, #64748b)' }}>Đang xác thực quyền truy cập...</div>
+      <div className="page-loading-screen">
+        <div className="page-loading-text">Đang xác thực quyền truy cập...</div>
       </div>
     );
   }

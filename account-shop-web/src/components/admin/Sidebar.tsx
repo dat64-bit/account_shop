@@ -41,7 +41,7 @@ export default function Sidebar() {
 
   return (
     <aside className="dashboard-sidebar">
-      <div className="admin-badge">
+      <div className="sidebar-admin-tag">
         <span className="badge-text">QUẢN TRỊ VIÊN</span>
       </div>
       <nav className="dashboard-nav">

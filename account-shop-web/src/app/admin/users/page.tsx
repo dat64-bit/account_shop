@@ -125,41 +125,38 @@ export default function AdminUsers() {
     <>
       <AdminTableCard title="Quản lý người dùng">
         {/* Bộ lọc động */}
-        <div style={{ display: 'flex', gap: '16px', padding: '20px 24px', borderBottom: '1px solid var(--border)', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1', minWidth: '200px' }}>
+        <div className="admin-filter-bar with-border">
+          <div className="admin-filter-search-wrapper">
             <input
               type="text"
               placeholder="Tìm theo username hoặc email..."
-              className="form-input"
+              className="admin-filter-input"
               value={keyword}
               onChange={e => setKeyword(e.target.value)}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
             />
           </div>
-          <div style={{ width: '180px' }}>
+          <div className="admin-filter-select-wrapper">
             <select
-              className="form-input"
+              className="admin-filter-select"
               value={roleIdFilter === undefined ? 'all' : roleIdFilter}
               onChange={e => {
                 const val = e.target.value;
                 setRoleIdFilter(val === 'all' ? undefined : Number(val));
               }}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
             >
               <option value="all">Tất cả vai trò</option>
               <option value="1">Khách hàng</option>
               <option value="2">Quản trị viên</option>
             </select>
           </div>
-          <div style={{ width: '180px' }}>
+          <div className="admin-filter-select-wrapper">
             <select
-              className="form-input"
+              className="admin-filter-select"
               value={statusIdFilter === undefined ? 'all' : statusIdFilter}
               onChange={e => {
                 const val = e.target.value;
                 setStatusIdFilter(val === 'all' ? undefined : Number(val));
               }}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="1">Hoạt động</option>
@@ -169,7 +166,7 @@ export default function AdminUsers() {
         </div>
 
         {loading ? (
-          <div className="animate-pulse" style={{ padding: '20px', textAlign: 'center' }}>Đang tải danh sách người dùng...</div>
+          <div className="table-loading-cell">Đang tải danh sách người dùng...</div>
         ) : (
           <>
             <table className="admin-table">
@@ -187,7 +184,7 @@ export default function AdminUsers() {
               <tbody>
                 {users.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '20px' }}>Không tìm thấy người dùng nào.</td>
+                    <td className="table-empty-cell" colSpan={7}>Không tìm thấy người dùng nào.</td>
                   </tr>
                 ) : (
                   users.map(user => (

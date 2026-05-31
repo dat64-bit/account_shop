@@ -185,8 +185,7 @@ export default function AdminInventory() {
         title="Quản lý Kho hàng"
         headerAction={
           <button 
-            className="btn-primary" 
-            style={{ fontSize: 12, padding: '8px 16px' }}
+            className="btn-primary sm" 
             onClick={() => {
               setEditingItem(null);
               setImportForm({
@@ -204,26 +203,24 @@ export default function AdminInventory() {
         }
       >
         {/* Bộ lọc động */}
-        <div style={{ display: 'flex', gap: '16px', padding: '20px 24px', borderBottom: '1px solid var(--border)', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1', minWidth: '200px' }}>
+        <div className="admin-filter-bar with-border">
+          <div className="admin-filter-search-wrapper">
             <input
               type="text"
               placeholder="Tìm theo email hoặc username tài khoản..."
-              className="form-input"
+              className="admin-filter-input"
               value={keyword}
               onChange={e => setKeyword(e.target.value)}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
             />
           </div>
-          <div style={{ width: '220px' }}>
+          <div className="admin-filter-select-wrapper w-220">
             <select
-              className="form-input"
+              className="admin-filter-select"
               value={productIdFilter === undefined ? 'all' : productIdFilter}
               onChange={e => {
                 const val = e.target.value;
                 setProductIdFilter(val === 'all' ? undefined : Number(val));
               }}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
             >
               <option value="all">Tất cả sản phẩm</option>
               {products.map(p => (
@@ -231,15 +228,14 @@ export default function AdminInventory() {
               ))}
             </select>
           </div>
-          <div style={{ width: '180px' }}>
+          <div className="admin-filter-select-wrapper">
             <select
-              className="form-input"
+              className="admin-filter-select"
               value={itemStatusIdFilter === undefined ? 'all' : itemStatusIdFilter}
               onChange={e => {
                 const val = e.target.value;
                 setItemStatusIdFilter(val === 'all' ? undefined : Number(val));
               }}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)' }}
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="1">Sẵn sàng</option>
@@ -250,7 +246,7 @@ export default function AdminInventory() {
         </div>
 
         {loading ? (
-          <div className="animate-pulse" style={{ padding: '20px', textAlign: 'center' }}>Đang tải danh sách kho...</div>
+          <div className="table-loading-cell">Đang tải danh sách kho...</div>
         ) : (
           <>
             <table className="admin-table">
@@ -269,7 +265,7 @@ export default function AdminInventory() {
               <tbody>
                 {inventory.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '20px' }}>Không có tài khoản nào trong kho hàng.</td>
+                    <td className="table-empty-cell" colSpan={8}>Không có tài khoản nào trong kho hàng.</td>
                   </tr>
                 ) : (
                   inventory.map(item => (
@@ -356,7 +352,7 @@ export default function AdminInventory() {
               </div>
               <form onSubmit={handleImportSubmit} className="modal-body">
                 <div className="form-group">
-                  <label>Sản phẩm <span style={{ color: 'red' }}>*</span></label>
+                  <label>Sản phẩm <span className="required-asterisk">*</span></label>
                   <select 
                     className="form-input" 
                     value={importForm.productId} 
@@ -392,7 +388,7 @@ export default function AdminInventory() {
                   )}
                 </div>
                 <div className="form-group">
-                  <label>Email/Tên đăng nhập <span style={{ color: 'red' }}>*</span></label>
+                  <label>Email/Tên đăng nhập <span className="required-asterisk">*</span></label>
                   <input 
                     type="text" 
                     className="form-input" 
@@ -403,7 +399,7 @@ export default function AdminInventory() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Mật khẩu <span style={{ color: 'red' }}>*</span></label>
+                  <label>Mật khẩu <span className="required-asterisk">*</span></label>
                   <input 
                     type="text" 
                     className="form-input" 
@@ -427,7 +423,7 @@ export default function AdminInventory() {
                   </div>
                 ) : (
                   <div className="form-group">
-                    <label>Trạng thái tài khoản <span style={{ color: 'red' }}>*</span></label>
+                    <label>Trạng thái tài khoản <span className="required-asterisk">*</span></label>
                     <select
                       className="form-input"
                       value={importForm.itemStatusId}

@@ -237,8 +237,8 @@ export default function Dashboard() {
 
   if (checking) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg, #f8fafc)' }}>
-        <div style={{ fontSize: 14, color: 'var(--text-sub, #64748b)' }}>Đang xác thực quyền truy cập...</div>
+      <div className="page-loading-screen">
+        <div className="page-loading-text">Đang xác thực quyền truy cập...</div>
       </div>
     );
   }
@@ -303,21 +303,21 @@ export default function Dashboard() {
                 <div className="animate-in dashboard-overview-container">
                   <div className="overview-stats-grid">
                     <div className="stat-card">
-                      <div className="stat-icon" style={{ background: '#dcfce7', color: '#166534' }}><ShoppingBag /></div>
+                      <div className="stat-icon green"><ShoppingBag /></div>
                       <div className="stat-info">
                         <span className="stat-label">Tổng đơn hàng</span>
                         <strong className="stat-value">{orders.length}</strong>
                       </div>
                     </div>
                     <div className="stat-card">
-                      <div className="stat-icon" style={{ background: '#e0f2fe', color: '#0369a1' }}><Clock /></div>
+                      <div className="stat-icon blue"><Clock /></div>
                       <div className="stat-info">
                         <span className="stat-label">Đã thanh toán</span>
                         <strong className="stat-value">{orders.filter(o => o.orderStatus === 'COMPLETED').length}</strong>
                       </div>
                     </div>
                     <div className="stat-card">
-                      <div className="stat-icon" style={{ background: '#fef3c7', color: '#92400e' }}><Key /></div>
+                      <div className="stat-icon amber"><Key /></div>
                       <div className="stat-info">
                         <span className="stat-label">Tổng chi tiêu</span>
                         <strong className="stat-value">{orders.reduce((sum, o) => sum + o.totalAmount, 0).toLocaleString()}đ</strong>
@@ -337,21 +337,21 @@ export default function Dashboard() {
                             <span>Phim Ảnh</span>
                             <span>2 đơn</span>
                           </div>
-                          <div className="progress-bar"><div className="progress-fill" style={{ width: '70%', background: '#60a5fa' }}></div></div>
+                          <div className="progress-bar"><div className="progress-fill blue" style={{ width: '70%' }}></div></div>
                         </div>
                         <div className="spending-item">
                           <div className="spending-info">
                             <span>Âm nhạc</span>
                             <span>1 đơn</span>
                           </div>
-                          <div className="progress-bar"><div className="progress-fill" style={{ width: '30%', background: '#f87171' }}></div></div>
+                          <div className="progress-bar"><div className="progress-fill red" style={{ width: '30%' }}></div></div>
                         </div>
                         <div className="spending-item">
                           <div className="spending-info">
                             <span>VPN & Bảo mật</span>
                             <span>0 đơn</span>
                           </div>
-                          <div className="progress-bar"><div className="progress-fill" style={{ width: '0%', background: '#fbbf24' }}></div></div>
+                          <div className="progress-bar"><div className="progress-fill amber" style={{ width: '0%' }}></div></div>
                         </div>
                       </div>
                     </div>
@@ -369,9 +369,9 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="status-legend">
-                          <div className="legend-item"><span className="dot" style={{ background: '#10b981' }}></span> Hoạt động: <strong>2</strong></div>
-                          <div className="legend-item"><span className="dot" style={{ background: '#f59e0b' }}></span> Sắp hết hạn: <strong>0</strong></div>
-                          <div className="legend-item"><span className="dot" style={{ background: '#ef4444' }}></span> Đã khóa: <strong>0</strong></div>
+                          <div className="legend-item"><span className="dot green"></span> Hoạt động: <strong>2</strong></div>
+                          <div className="legend-item"><span className="dot amber"></span> Sắp hết hạn: <strong>0</strong></div>
+                          <div className="legend-item"><span className="dot red"></span> Đã khóa: <strong>0</strong></div>
                         </div>
                       </div>
                     </div>
@@ -399,26 +399,24 @@ export default function Dashboard() {
                   </div>
 
                   {/* Bộ lọc động */}
-                  <div style={{ display: 'flex', gap: '16px', padding: '20px 30px 10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ flex: '1', minWidth: '200px' }}>
+                  <div className="admin-filter-bar">
+                    <div className="admin-filter-search-wrapper">
                       <input
                         type="text"
                         placeholder="Tìm theo tên sản phẩm..."
-                        className="form-input"
+                        className="admin-filter-input"
                         value={orderKeyword}
                         onChange={e => setOrderKeyword(e.target.value)}
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', background: 'var(--card-bg, #fff)', color: 'var(--text, #0f172a)' }}
                       />
                     </div>
-                    <div style={{ width: '180px' }}>
+                    <div className="admin-filter-select-wrapper">
                       <select
-                        className="form-input"
+                        className="admin-filter-select"
                         value={orderStatusFilter === undefined ? 'all' : orderStatusFilter}
                         onChange={e => {
                           const val = e.target.value;
                           setOrderStatusFilter(val === 'all' ? undefined : Number(val));
                         }}
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', background: 'var(--card-bg, #fff)', color: 'var(--text, #0f172a)' }}
                       >
                         <option value="all">Tất cả trạng thái</option>
                         <option value="2">Hoàn thành</option>
@@ -568,16 +566,15 @@ export default function Dashboard() {
                   </div>
 
                   {/* Bộ lọc động */}
-                  <div style={{ display: 'flex', gap: '16px', padding: '20px 30px 10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ width: '180px' }}>
+                  <div className="admin-filter-bar">
+                    <div className="admin-filter-select-wrapper">
                       <select
-                        className="form-input"
+                        className="admin-filter-select"
                         value={ticketStatusFilter === undefined ? 'all' : ticketStatusFilter}
                         onChange={e => {
                           const val = e.target.value;
                           setTicketStatusFilter(val === 'all' ? undefined : Number(val));
                         }}
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', background: 'var(--card-bg, #fff)', color: 'var(--text, #0f172a)' }}
                       >
                         <option value="all">Tất cả trạng thái</option>
                         <option value="1">Đang chờ</option>
