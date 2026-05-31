@@ -28,6 +28,24 @@ public class OrderService {
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private ProductRepository productRepository;
     @Autowired private AccountItemRepository accountItemRepository;
+    @Autowired private OrderStatusRepository orderStatusRepository;
+
+    @jakarta.annotation.PostConstruct
+    public void initStatuses() {
+        try {
+            List<OrderStatus> statuses = orderStatusRepository.findAll();
+            boolean hasFailed = statuses.stream().anyMatch(s -> "FAILED".equalsIgnoreCase(s.getStatusName()));
+            if (!hasFailed) {
+                orderStatusRepository.save(OrderStatus.builder().statusName("FAILED").description("Báo lỗi").build());
+            }
+            boolean hasReplaced = statuses.stream().anyMatch(s -> "REPLACED".equalsIgnoreCase(s.getStatusName()));
+            if (!hasReplaced) {
+                orderStatusRepository.save(OrderStatus.builder().statusName("REPLACED").description("Đã đổi tài khoản").build());
+            }
+        } catch (Exception e) {
+            System.err.println("Error initializing statuses: " + e.getMessage());
+        }
+    }
 
     @Transactional
     public OrderDTO checkout(String username, CheckoutRequest request) {
@@ -82,6 +100,7 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         // 8. Assign Slots & Create Order Details
+        Integer firstOrderDetailId = null;
         for (int i = 0; i < request.getQuantity(); i++) {
             AccountSlot assignedSlot = availableSlots.get(i);
             
@@ -96,11 +115,15 @@ public class OrderService {
             detail.setAccountSlotId(assignedSlot.getAccountSlotId());
             detail.setPrice(unitPrice);
             detail.setFulfillmentStatusId(2); // COMPLETED
-            orderDetailRepository.save(detail);
+            OrderDetail savedDetail = orderDetailRepository.save(detail);
+            if (firstOrderDetailId == null) {
+                firstOrderDetailId = savedDetail.getOrderDetailId();
+            }
         }
 
         OrderDTO dto = new OrderDTO();
         dto.setOrderId(savedOrder.getOrderId());
+        dto.setOrderDetailId(firstOrderDetailId);
         dto.setTotalAmount(savedOrder.getTotalAmount());
         dto.setOrderStatus("COMPLETED");
         dto.setFulfillmentStatus("COMPLETED");
@@ -117,7 +140,10 @@ public class OrderService {
                     OrderDTO dto = new OrderDTO();
                     dto.setOrderId(o.getOrderId());
                     dto.setTotalAmount(o.getTotalAmount());
-                    dto.setOrderStatus(o.getOrderStatusId() != null && o.getOrderStatusId() == 2 ? "COMPLETED" : "PENDING");
+                    dto.setOrderStatus(o.getOrderStatusId() != null && o.getOrderStatusId() == 5 ? "REFUNDED" :
+                                      (o.getOrderStatusId() != null && o.getOrderStatusId() == 2 ? "COMPLETED" :
+                                      (o.getOrderStatusId() != null && o.getOrderStatusId() == 6 ? "FAILED" :
+                                      (o.getOrderStatusId() != null && o.getOrderStatusId() == 7 ? "REPLACED" : "PENDING"))));
                     dto.setCreatedAt(o.getCreatedAt());
 
                     // Lấy chi tiết đơn hàng đầu tiên
@@ -125,6 +151,7 @@ public class OrderService {
                     
                     if (!details.isEmpty()) {
                         OrderDetail firstDetail = details.get(0);
+                        dto.setOrderDetailId(firstDetail.getOrderDetailId());
                         subscriptionRepository.findById(firstDetail.getProductSubscriptionId()).ifPresent(sub -> {
                             productRepository.findById(sub.getProductId()).ifPresent(p -> dto.setProductName(p.getProductName()));
                         });
@@ -161,16 +188,23 @@ public class OrderService {
                 OrderDTO dto = new OrderDTO();
                 dto.setOrderId(o.getOrderId());
                 dto.setTotalAmount(o.getTotalAmount());
-                dto.setOrderStatus(o.getOrderStatusId() != null && o.getOrderStatusId() == 2 ? "COMPLETED" : "PENDING");
+                dto.setOrderStatus(o.getOrderStatusId() != null && o.getOrderStatusId() == 5 ? "REFUNDED" :
+                                  (o.getOrderStatusId() != null && o.getOrderStatusId() == 2 ? "COMPLETED" :
+                                  (o.getOrderStatusId() != null && o.getOrderStatusId() == 6 ? "FAILED" :
+                                  (o.getOrderStatusId() != null && o.getOrderStatusId() == 7 ? "REPLACED" : "PENDING"))));
                 dto.setCreatedAt(o.getCreatedAt());
 
-                // Set username
-                accountRepository.findById(o.getAccountId()).ifPresent(acc -> dto.setUsername(acc.getUsername()));
+                // Set username & full name
+                accountRepository.findById(o.getAccountId()).ifPresent(acc -> {
+                    dto.setUsername(acc.getUsername());
+                    dto.setFullName(acc.getFullName());
+                });
 
                 // Lấy chi tiết đơn hàng
                 List<OrderDetail> details = orderDetailRepository.findByOrderId(o.getOrderId());
                 if (!details.isEmpty()) {
                     OrderDetail firstDetail = details.get(0);
+                    dto.setOrderDetailId(firstDetail.getOrderDetailId());
                     subscriptionRepository.findById(firstDetail.getProductSubscriptionId()).ifPresent(sub -> {
                         productRepository.findById(sub.getProductId()).ifPresent(p -> dto.setProductName(p.getProductName()));
                     });

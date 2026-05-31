@@ -108,11 +108,78 @@ public class AdminController {
     }
 
     @PostMapping("/orders/{orderDetailId}/replace-account")
-    public ResponseEntity<?> replaceAccount(@PathVariable Integer orderDetailId,
-            @RequestParam Integer newAccountItemId) {
+    public ResponseEntity<?> replaceAccount(
+            @PathVariable Integer orderDetailId,
+            @RequestParam Integer newAccountItemId,
+            @RequestParam(required = false) Integer newAccountSlotId) {
         try {
-            adminService.replaceAccountForOrder(orderDetailId, newAccountItemId);
-            return ResponseEntity.ok("Account replaced successfully for the order.");
+            adminService.replaceAccountForOrder(orderDetailId, newAccountItemId, newAccountSlotId);
+            return ResponseEntity.ok("Account/slot replaced successfully for the order.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/orders/available-replacements")
+    public ResponseEntity<?> getAvailableReplacements(@RequestParam Integer orderDetailId) {
+        try {
+            return ResponseEntity.ok(adminService.getAvailableReplacements(orderDetailId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/inventory/{accountItemId}/slots")
+    public ResponseEntity<?> getSlots(@PathVariable Integer accountItemId) {
+        try {
+            return ResponseEntity.ok(adminService.getSlotsByAccountItemId(accountItemId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/inventory/{accountItemId}/slots")
+    public ResponseEntity<?> addSlot(
+            @PathVariable Integer accountItemId,
+            @RequestParam String slotName,
+            @RequestParam(required = false) String pinCode) {
+        try {
+            return ResponseEntity.ok(adminService.addSlotToAccountItem(accountItemId, slotName, pinCode));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/inventory/slots/{slotId}")
+    public ResponseEntity<?> updateSlot(
+            @PathVariable Integer slotId,
+            @RequestParam String slotName,
+            @RequestParam(required = false) String pinCode,
+            @RequestParam(required = false) Integer slotStatusId) {
+        try {
+            return ResponseEntity.ok(adminService.updateSlot(slotId, slotName, pinCode, slotStatusId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/inventory/slots/{slotId}")
+    public ResponseEntity<?> deleteSlot(@PathVariable Integer slotId) {
+        try {
+            adminService.deleteSlot(slotId);
+            return ResponseEntity.ok("Slot deleted successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/orders/{orderId}/refund")
+    public ResponseEntity<?> refundOrder(
+            @PathVariable Integer orderId,
+            @RequestParam(required = false) java.math.BigDecimal amount) {
+        try {
+            adminService.refundOrder(orderId, amount);
+            return ResponseEntity.ok("Order refunded successfully.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 @Repository
 public interface AccountItemRepository extends JpaRepository<AccountItem, Integer> {
     List<AccountItem> findByProductId(Integer productId);
+    List<AccountItem> findByProductIdAndItemStatusId(Integer productId, Integer itemStatusId);
 
     @Query("SELECT ai.accountItemId FROM AccountItem ai WHERE " +
            "(:productId IS NULL OR ai.productId = :productId) AND " +

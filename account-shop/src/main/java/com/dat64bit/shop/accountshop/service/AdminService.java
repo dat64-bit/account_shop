@@ -6,6 +6,7 @@ import com.dat64bit.shop.accountshop.dto.response.UserDTO;
 import com.dat64bit.shop.accountshop.dto.response.ProductDTO;
 import com.dat64bit.shop.accountshop.dto.response.PagedResponse;
 import com.dat64bit.shop.accountshop.dto.response.TransactionDTO;
+import com.dat64bit.shop.accountshop.dto.response.AvailableReplacementDTO;
 import com.dat64bit.shop.accountshop.dto.request.InventoryRequest;
 import com.dat64bit.shop.accountshop.entity.*;
 import com.dat64bit.shop.accountshop.repository.*;
@@ -262,27 +263,186 @@ public class AdminService {
     }
 
     @Transactional
-    public void replaceAccountForOrder(Integer orderDetailId, Integer newAccountItemId) {
+    public void replaceAccountForOrder(Integer orderDetailId, Integer newAccountItemId, Integer newAccountSlotId) {
         OrderDetail detail = orderDetailRepository.findById(orderDetailId)
                 .orElseThrow(() -> new RuntimeException("Order detail not found"));
 
-        // Thu hồi account cũ (đánh dấu lỗi)
-        if (detail.getAccountItemId() != null) {
+        // Thu hồi account/slot cũ (đánh dấu lỗi/expired)
+        if (detail.getAccountSlotId() != null) {
+            accountSlotRepository.findById(detail.getAccountSlotId()).ifPresent(oldSlot -> {
+                oldSlot.setSlotStatusId(3); // 3 = Expired/Faulty
+                accountSlotRepository.save(oldSlot);
+            });
+        } else if (detail.getAccountItemId() != null) {
             accountItemRepository.findById(detail.getAccountItemId()).ifPresent(oldItem -> {
                 oldItem.setItemStatusId(3); // 3 = BANNED / FAULTY
                 accountItemRepository.save(oldItem);
             });
         }
 
-        // Gán account mới
+        // Gán account/slot mới
         detail.setAccountItemId(newAccountItemId);
+        detail.setAccountSlotId(newAccountSlotId);
+        detail.setUpdatedAt(LocalDateTime.now());
         orderDetailRepository.save(detail);
 
-        // Đánh dấu account mới là Đã bán (2)
-        accountItemRepository.findById(newAccountItemId).ifPresent(newItem -> {
-            newItem.setItemStatusId(2); // 2 = IN USE
-            accountItemRepository.save(newItem);
+        // Đánh dấu account/slot mới là Đã bán / In use
+        if (newAccountSlotId != null) {
+            accountSlotRepository.findById(newAccountSlotId).ifPresent(newSlot -> {
+                newSlot.setSlotStatusId(2); // 2 = IN USE
+                accountSlotRepository.save(newSlot);
+            });
+        } else {
+            accountItemRepository.findById(newAccountItemId).ifPresent(newItem -> {
+                newItem.setItemStatusId(2); // 2 = IN USE
+                accountItemRepository.save(newItem);
+            });
+        }
+
+        // Cập nhật trạng thái đơn hàng thành Đã đổi tài khoản (7)
+        orderRepository.findById(detail.getOrderId()).ifPresent(order -> {
+            order.setOrderStatusId(7); // 7 = REPLACED
+            order.setUpdatedAt(LocalDateTime.now());
+            orderRepository.save(order);
         });
+    }
+
+    public List<AvailableReplacementDTO> getAvailableReplacements(Integer orderDetailId) {
+        OrderDetail detail = orderDetailRepository.findById(orderDetailId)
+                .orElseThrow(() -> new RuntimeException("Order detail not found"));
+        
+        ProductSubscription sub = productSubscriptionRepository.findById(detail.getProductSubscriptionId())
+                .orElseThrow(() -> new RuntimeException("Product subscription not found"));
+        Integer productId = sub.getProductId();
+
+        List<AvailableReplacementDTO> replacements = new java.util.ArrayList<>();
+
+        if (detail.getAccountSlotId() != null) {
+            // Đơn hàng mua theo slot -> cho phép chọn tất cả các slot của sản phẩm
+            List<AccountSlot> allSlots = accountSlotRepository.findAllSlotsByProductId(productId);
+            for (AccountSlot slot : allSlots) {
+                AvailableReplacementDTO dto = new AvailableReplacementDTO();
+                dto.setAccountItemId(slot.getAccountItemId());
+                dto.setAccountSlotId(slot.getAccountSlotId());
+                dto.setSlotName(slot.getSlotName());
+                dto.setPinCode(slot.getPinCode());
+                dto.setStatusId(slot.getSlotStatusId());
+                dto.setStatusName(slot.getSlotStatusId() == 1 ? "Sẵn sàng" : 
+                                  slot.getSlotStatusId() == 2 ? "Đang sử dụng" : "Lỗi");
+                accountItemRepository.findById(slot.getAccountItemId()).ifPresent(item -> {
+                    dto.setAccountEmail(item.getAccountEmail());
+                    dto.setAccountPassword(item.getAccountPassword());
+                });
+                replacements.add(dto);
+            }
+        } else {
+            // Đơn hàng mua cả tài khoản -> cho phép chọn tất cả các tài khoản đang hoạt động (itemStatusId = 1) của sản phẩm
+            List<AccountItem> activeItems = accountItemRepository.findByProductIdAndItemStatusId(productId, 1);
+            for (AccountItem item : activeItems) {
+                List<AccountSlot> slots = accountSlotRepository.findByAccountItemIdIn(java.util.Collections.singletonList(item.getAccountItemId()));
+                if (slots.isEmpty()) {
+                    AvailableReplacementDTO dto = new AvailableReplacementDTO();
+                    dto.setAccountItemId(item.getAccountItemId());
+                    dto.setAccountSlotId(null);
+                    dto.setAccountEmail(item.getAccountEmail());
+                    dto.setAccountPassword(item.getAccountPassword());
+                    dto.setSlotName(null);
+                    dto.setPinCode(null);
+                    dto.setStatusId(item.getItemStatusId());
+                    dto.setStatusName(item.getItemStatusId() == 1 ? "Sẵn sàng" : 
+                                      item.getItemStatusId() == 2 ? "Đã bán" : "Lỗi");
+                    replacements.add(dto);
+                }
+            }
+        }
+        return replacements;
+    }
+
+    public List<AccountSlot> getSlotsByAccountItemId(Integer accountItemId) {
+        return accountSlotRepository.findByAccountItemIdIn(java.util.Collections.singletonList(accountItemId));
+    }
+
+    @Transactional
+    public AccountSlot addSlotToAccountItem(Integer accountItemId, String slotName, String pinCode) {
+        AccountItem item = accountItemRepository.findById(accountItemId)
+                .orElseThrow(() -> new RuntimeException("Account item not found"));
+        AccountSlot slot = new AccountSlot();
+        slot.setAccountItemId(accountItemId);
+        slot.setSlotName(slotName);
+        slot.setPinCode(pinCode != null ? pinCode : "0000");
+        slot.setSlotStatusId(1); // 1 = AVAILABLE
+        slot.setCreatedAt(LocalDateTime.now());
+        return accountSlotRepository.save(slot);
+    }
+
+    @Transactional
+    public AccountSlot updateSlot(Integer slotId, String slotName, String pinCode, Integer slotStatusId) {
+        AccountSlot slot = accountSlotRepository.findById(slotId)
+                .orElseThrow(() -> new RuntimeException("Slot not found"));
+        slot.setSlotName(slotName);
+        slot.setPinCode(pinCode != null ? pinCode : "0000");
+        if (slotStatusId != null) {
+            slot.setSlotStatusId(slotStatusId);
+        }
+        slot.setUpdatedAt(LocalDateTime.now());
+        return accountSlotRepository.save(slot);
+    }
+
+    @Transactional
+    public void deleteSlot(Integer slotId) {
+        accountSlotRepository.deleteById(slotId);
+    }
+
+    @Transactional
+    public void refundOrder(Integer orderId, java.math.BigDecimal refundAmount) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (order.getOrderStatusId() != null && order.getOrderStatusId() == 5) {
+            throw new RuntimeException("Order is already refunded");
+        }
+
+        // Cập nhật trạng thái đơn hàng thành Refunded (5)
+        order.setOrderStatusId(5); // 5 = REFUNDED
+        order.setUpdatedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        // Xác định số tiền hoàn lại (mặc định là tổng tiền đơn hàng nếu không truyền vào)
+        java.math.BigDecimal finalAmount = refundAmount != null ? refundAmount : order.getTotalAmount();
+
+        // Hoàn tiền vào ví khách hàng
+        Account customerAcc = accountRepository.findById(order.getAccountId())
+                .orElseThrow(() -> new RuntimeException("Customer account not found"));
+        customerAcc.setBalance(customerAcc.getBalance().add(finalAmount));
+        accountRepository.save(customerAcc);
+
+        // Lưu log giao dịch
+        Transaction transaction = new Transaction();
+        transaction.setAccountId(customerAcc.getAccountId());
+        transaction.setOrderId(order.getOrderId());
+        transaction.setAmount(finalAmount); // positive balance add
+        transaction.setTransactionTypeId(4); // REFUND
+        transaction.setTransactionStatusId(2); // SUCCESS
+        transaction.setPaymentMethodId(1); // WALLET
+        transaction.setDescription("Hoàn tiền đơn hàng #" + order.getOrderId());
+        transaction.setCreatedAt(LocalDateTime.now());
+        transactionRepository.save(transaction);
+
+        // Giải phóng slot / account item về trạng thái Sẵn sàng (1)
+        List<OrderDetail> details = orderDetailRepository.findByOrderId(orderId);
+        for (OrderDetail detail : details) {
+            if (detail.getAccountSlotId() != null) {
+                accountSlotRepository.findById(detail.getAccountSlotId()).ifPresent(slot -> {
+                    slot.setSlotStatusId(1); // 1 = AVAILABLE
+                    accountSlotRepository.save(slot);
+                });
+            } else if (detail.getAccountItemId() != null) {
+                accountItemRepository.findById(detail.getAccountItemId()).ifPresent(item -> {
+                    item.setItemStatusId(1); // 1 = AVAILABLE
+                    accountItemRepository.save(item);
+                });
+            }
+        }
     }
 
     @Transactional
