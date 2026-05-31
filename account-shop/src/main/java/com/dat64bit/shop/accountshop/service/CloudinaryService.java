@@ -22,15 +22,14 @@ public class CloudinaryService {
                 "cloud_name", cloudName,
                 "api_key", apiKey,
                 "api_secret", apiSecret,
-                "secure", true
-        ));
+                "secure", true));
     }
 
     public String uploadFile(MultipartFile file) throws IOException {
-        // Tải file trực tiếp từ byte array lên Cloudinary, đặt vào thư mục 'account-shop'
-        Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
-                "folder", "account-shop"
-        ));
-        return uploadResult.get("secure_url").toString();
+        // Tải file trực tiếp từ byte array lên Cloudinary, đặt vào thư mục
+        // 'account-shop'
+        Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                "folder", "account-shop"));
+        return (String) uploadResult.get("secure_url");
     }
 }

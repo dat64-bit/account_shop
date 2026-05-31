@@ -20,7 +20,7 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
            "LEFT JOIN Account a ON a.accountId = o.accountId " +
            "WHERE (:accountId IS NULL OR o.accountId = :accountId) AND " +
            "(:statusId IS NULL OR o.orderStatusId = :statusId) AND " +
-           "(:keyword IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(a.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(o.note) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+           "(:keyword IS NULL OR CAST(o.orderId AS string) LIKE CONCAT('%', :keyword, '%') OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(a.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(o.note) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
            "(:lastId IS NULL OR o.orderId < :lastId) " +
            "ORDER BY o.orderId DESC")
     List<Integer> findIdsPaged(

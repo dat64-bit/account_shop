@@ -99,9 +99,9 @@ Theo [ADR-002](file:///d:/shop/account-shop/account_shop/docs/decisions/ADR-002-
 2. **Spring Security Configuration:**
    * Cấu hình rõ ràng quyền truy cập trong [SecurityConfig.java](file:///d:/shop/account-shop/account_shop/account-shop/src/main/java/com/dat64bit/shop/accountshop/config/SecurityConfig.java):
      ```java
-     .requestMatchers("/api/user/**").hasAnyRole("CUSTOMER", "ADMIN")
+     .requestMatchers("/api/user/**").hasRole("CUSTOMER")
      ```
-     *(Vì cả Customer và Admin đều có quyền xem vé hỗ trợ, viết phản hồi ticket cá nhân hoặc đặt hàng nên cho phép cả 2 role).*
+     *(Vì chỉ Customer có quyền xem vé hỗ trợ, viết phản hồi ticket cá nhân hoặc đặt hàng).*
 3. **Frontend API Calls:**
    * Cập nhật toàn bộ các API call trong [dashboard/page.tsx](file:///d:/shop/account-shop/account_shop/account-shop-web/src/app/dashboard/page.tsx) và [admin/tickets/page.tsx](file:///d:/shop/account-shop/account_shop/account-shop-web/src/app/admin/tickets/page.tsx) từ `/v1/...` sang `/user/...`.
 

@@ -56,6 +56,7 @@ This repository contains two main subsystems:
 ## 3. Observability, Safety & Human-in-the-Loop (HITL)
 - **Mandatory "Think Aloud" (Tracing):** Before calling any MCP server, external tool, or terminal command, you MUST output a brief "Plan:" or "Thought:" detailing exactly what you are about to do and why.
 - **Error Handling:** If a command or tool call fails, analyze the error log, state the reason for the failure, and propose a specific fix before retrying.
+- **Git Control Rule:** DO NOT automatically run Git commands (`git add`, `git commit`, `git push`) immediately after editing code. Only run Git commands when explicitly requested by the USER ("wait until I tell you to git").
 - **Human-in-the-Loop (HITL):** PAUSE execution and explicitly ask for user approval BEFORE performing high-risk actions such as:
   1. Executing database migrations, mutations, or data drops (e.g., `DROP`, `DELETE`).
   2. Running destructive terminal commands (e.g., `rm -rf`, `git reset --hard`).
