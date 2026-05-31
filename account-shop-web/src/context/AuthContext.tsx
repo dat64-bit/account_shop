@@ -44,8 +44,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(userData);
         localStorage.setItem('user_info', JSON.stringify(userData));
       } catch (err) {
-        // Token không hợp lệ hoặc hết hạn -> Đăng xuất
-        logout();
+        // Token không hợp lệ hoặc hết hạn -> Đăng xuất âm thầm (không redirect reload)
+        logout(false);
       }
     };
 
@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = async (redirect = true) => {
     try {
       await api.post('/auth/logout');
     } catch (e) {
@@ -77,7 +77,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     localStorage.removeItem('user_info');
     setUser(null);
-    window.location.href = '/';
+    if (redirect && window.location.pathname !== '/') {
+      window.location.href = '/';
+    }
   };
 
   return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>;
