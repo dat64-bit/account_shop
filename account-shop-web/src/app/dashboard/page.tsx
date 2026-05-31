@@ -97,7 +97,7 @@ export default function Dashboard() {
 
   const fetchOrders = async (lastId: number | null, page: number, currentStatusFilter = orderStatusFilter, currentKeyword = orderKeyword) => {
     try {
-      let url = `/v1/orders/my-orders?limit=15`;
+      let url = `/user/orders/my-orders?limit=15`;
       if (lastId) url += `&lastId=${lastId}`;
       if (currentStatusFilter !== undefined) url += `&statusId=${currentStatusFilter}`;
       if (currentKeyword.trim()) url += `&keyword=${encodeURIComponent(currentKeyword.trim())}`;
@@ -113,7 +113,7 @@ export default function Dashboard() {
 
   const fetchTickets = async (lastId: number | null, page: number, currentStatusFilter = ticketStatusFilter) => {
     try {
-      let url = `/v1/tickets/my-tickets?limit=15`;
+      let url = `/user/tickets/my-tickets?limit=15`;
       if (lastId) url += `&lastId=${lastId}`;
       if (currentStatusFilter !== undefined) url += `&statusId=${currentStatusFilter}`;
       
@@ -216,7 +216,7 @@ export default function Dashboard() {
     }
 
     try {
-      const response = await api.post('/v1/tickets', {
+      const response = await api.post('/user/tickets', {
         orderDetailId: selectedOrderId,
         issueType: 'ORDER_ISSUE',
         message: ticketMessage

@@ -58,7 +58,7 @@ export default function AdminTickets() {
 
   const fetchTicketReplies = async (ticketId: number) => {
     try {
-      const res = await api.get(`/v1/tickets/${ticketId}/replies`);
+      const res = await api.get(`/user/tickets/${ticketId}/replies`);
       setTicketReplies(res.data);
     } catch (error) {
       console.error("Error fetching replies:", error);
@@ -74,7 +74,7 @@ export default function AdminTickets() {
   const handleSendReply = async () => {
     if (!adminReply.trim()) return;
     try {
-      await api.post(`/v1/tickets/${selectedTicket.ticketId}/replies`, { message: adminReply });
+      await api.post(`/user/tickets/${selectedTicket.ticketId}/replies`, { message: adminReply });
       setAdminReply('');
       fetchTicketReplies(selectedTicket.ticketId);
       showToast('Gửi phản hồi thành công.', 'success');

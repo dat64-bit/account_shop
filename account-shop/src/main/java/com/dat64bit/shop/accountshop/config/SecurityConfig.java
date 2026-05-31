@@ -29,7 +29,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    // Đọc danh sách allowed origins từ application.properties hoặc .env (CORS_ALLOWED_ORIGINS)
+    // Đọc danh sách allowed origins từ application.properties hoặc .env
+    // (CORS_ALLOWED_ORIGINS)
     @Value("#{'${app.cors.allowed-origins}'.split(',')}")
     private List<String> allowedOrigins;
 
@@ -79,6 +80,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/api/user/**").hasAnyRole("CUSTOMER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated());
 
