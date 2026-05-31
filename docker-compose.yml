@@ -8,20 +8,16 @@
 services:
   backend:
     image: ghcr.io/dat64-bit/account-shop-backend:latest
+    container_name: account-shop-backend
     restart: unless-stopped
-    ports:
-      - "8080:8080"
+    network_mode: "host"
     env_file:
       - ./account-shop/.env
-    # Backend đọc .env qua spring.config.import=optional:file:.env
-    # SQL Server chạy trực tiếp trên host — kết nối qua IP server (không phải localhost)
 
   frontend:
     image: ghcr.io/dat64-bit/account-shop-frontend:latest
+    container_name: account-shop-frontend
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    network_mode: "host"
     env_file:
       - ./account-shop-web/.env
-    depends_on:
-      - backend

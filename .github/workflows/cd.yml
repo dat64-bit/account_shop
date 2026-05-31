@@ -95,6 +95,9 @@ jobs:
             # Di chuyển đến thư mục dự án trên server
             cd ~/account_shop
 
+            # Cập nhật docker-compose.yml mới nhất từ GitHub
+            curl -fsSL "https://raw.githubusercontent.com/dat64-bit/account_shop/main/docker-compose.yml" -o ~/account_shop/docker-compose.yml
+
             # Pull image mới nhất từ GHCR
             docker compose pull
 

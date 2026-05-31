@@ -92,38 +92,22 @@ Tệp này đặt tại thư mục gốc của dự án: `docker-compose.yml`
 Quản lý đồng thời cả hai container, liên kết chúng với các file cấu hình `.env` sẵn có trên Host VPS nhằm bảo mật thông tin (không đẩy `.env` lên GitHub).
 
 ```yaml
-version: '3.8'
-
 services:
   backend:
     image: ghcr.io/dat64-bit/account-shop-backend:latest
     container_name: account-shop-backend
     restart: unless-stopped
-    ports:
-      - "8080:8080"
-    # Đọc biến môi trường từ file bảo mật nằm trên VPS
+    network_mode: "host"
     env_file:
       - ./account-shop/.env
-    # Giới hạn tài nguyên để tránh nghẽn ram VPS
-    deploy:
-      resources:
-        limits:
-          memory: 512M
 
   frontend:
     image: ghcr.io/dat64-bit/account-shop-frontend:latest
     container_name: account-shop-frontend
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    network_mode: "host"
     env_file:
       - ./account-shop-web/.env
-    depends_on:
-      - backend
-    deploy:
-      resources:
-        limits:
-          memory: 256M
 ```
 
 ---
@@ -226,6 +210,8 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
             cd ~/account_shop
+            # Cập nhật docker-compose.yml mới nhất từ GitHub
+            curl -fsSL "https://raw.githubusercontent.com/dat64-bit/account_shop/main/docker-compose.yml" -o ~/account_shop/docker-compose.yml
             # Tải các image mới nhất
             docker compose pull
             # Restart lại các service mà không tạo downtime
