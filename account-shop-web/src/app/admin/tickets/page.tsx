@@ -5,6 +5,7 @@ import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
 import { API_BASE_URL } from '@/lib/config';
+import api from '@/lib/axios';
 
 export default function AdminTickets() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -32,57 +33,36 @@ export default function AdminTickets() {
   const [cursors, setCursors] = useState<(number | null)[]>([null]);
 
   const fetchTickets = async (lastId: number | null, page: number) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     try {
-      let url = `${API_BASE_URL}/api/admin/tickets?limit=15`;
+      let url = `/admin/tickets?limit=15`;
       if (lastId !== null) url += `&lastId=${lastId}`;
       if (statusFilter !== undefined) url += `&statusId=${statusFilter}`;
       if (debouncedKeyword.trim()) url += `&keyword=${encodeURIComponent(debouncedKeyword.trim())}`;
 
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTickets(data.content || []);
-        setHasMore(data.hasMore || false);
-        setCurrentPage(page);
-      } else {
-        if (res.status === 401 || res.status === 403) {
-          showToast('Phiên đăng nhập hết hạn hoặc không có quyền truy cập.', 'error');
-        } else {
-          showToast(`Lỗi tải danh sách ticket (${res.status})`, 'error');
-        }
-      }
-    } catch (error) {
+      const res = await api.get(url);
+      setTickets(res.data.content || []);
+      setHasMore(res.data.hasMore || false);
+      setCurrentPage(page);
+    } catch (error: any) {
       console.error("Error fetching tickets:", error);
-      showToast('Lỗi kết nối máy chủ.', 'error');
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        showToast('Phiên đăng nhập hết hạn hoặc không có quyền truy cập.', 'error');
+      } else {
+        showToast('Lỗi tải danh sách ticket hoặc kết nối máy chủ.', 'error');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const fetchTicketReplies = async (ticketId: number) => {
-    const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/tickets/${ticketId}/replies`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTicketReplies(data);
-      } else {
-        showToast(`Lỗi tải nội dung phản hồi (${res.status})`, 'error');
-      }
+      const res = await api.get(`/v1/tickets/${ticketId}/replies`);
+      setTicketReplies(res.data);
     } catch (error) {
       console.error("Error fetching replies:", error);
-      showToast('Lỗi kết nối máy chủ khi tải phản hồi.', 'error');
+      showToast('Lỗi tải nội dung phản hồi hoặc kết nối máy chủ.', 'error');
     }
   };
 
@@ -93,43 +73,26 @@ export default function AdminTickets() {
 
   const handleSendReply = async () => {
     if (!adminReply.trim()) return;
-    const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/tickets/${selectedTicket.ticketId}/replies`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: adminReply })
-      });
-      if (res.ok) {
-        setAdminReply('');
-        fetchTicketReplies(selectedTicket.ticketId);
-        showToast('Gửi phản hồi thành công.', 'success');
-      } else {
-        showToast(`Không thể gửi phản hồi (${res.status})`, 'error');
-      }
+      await api.post(`/v1/tickets/${selectedTicket.ticketId}/replies`, { message: adminReply });
+      setAdminReply('');
+      fetchTicketReplies(selectedTicket.ticketId);
+      showToast('Gửi phản hồi thành công.', 'success');
     } catch (error) {
       console.error("Error sending reply:", error);
-      showToast('Lỗi kết nối khi gửi phản hồi.', 'error');
+      showToast('Lỗi gửi phản hồi hoặc kết nối.', 'error');
     }
   };
 
   const handleResolveTicket = async (newStatus: number) => {
-    const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/tickets/${selectedTicket.ticketId}/status?statusId=${newStatus}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        fetchTickets(cursors[currentPage - 1], currentPage);
-        setSelectedTicket(null);
-        showToast('Cập nhật trạng thái ticket thành công.', 'success');
-      } else {
-        showToast(`Không thể cập nhật trạng thái (${res.status})`, 'error');
-      }
+      await api.put(`/admin/tickets/${selectedTicket.ticketId}/status?statusId=${newStatus}`);
+      fetchTickets(cursors[currentPage - 1], currentPage);
+      setSelectedTicket(null);
+      showToast('Cập nhật trạng thái ticket thành công.', 'success');
     } catch (error) {
       console.error("Error resolving ticket:", error);
-      showToast('Lỗi kết nối.', 'error');
+      showToast('Không thể cập nhật trạng thái hoặc lỗi kết nối.', 'error');
     }
   };
 

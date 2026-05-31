@@ -7,6 +7,7 @@ import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
 import { AdminPagination } from '@/components/admin/AdminPagination';
 import Portal from '@/components/Portal';
 import { API_BASE_URL } from '@/lib/config';
+import api from '@/lib/axios';
 
 const Plus = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -50,53 +51,34 @@ export default function AdminInventory() {
   const [cursors, setCursors] = useState<(number | null)[]>([null]);
 
   const fetchProductsList = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/products?limit=1000`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setProducts(data.content || []);
-      }
+      const res = await api.get('/admin/products?limit=1000');
+      setProducts(res.data.content || []);
     } catch (err) {
       console.error("Error fetching products list for filter:", err);
     }
   };
 
   const fetchInventory = async (lastId: number | null, page: number) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     try {
-      let url = `${API_BASE_URL}/api/admin/inventory?limit=15`;
+      let url = `/admin/inventory?limit=15`;
       if (lastId !== null) url += `&lastId=${lastId}`;
       if (productIdFilter !== undefined) url += `&productId=${productIdFilter}`;
       if (itemStatusIdFilter !== undefined) url += `&itemStatusId=${itemStatusIdFilter}`;
       if (debouncedKeyword.trim()) url += `&keyword=${encodeURIComponent(debouncedKeyword.trim())}`;
 
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setInventory(data.content || []);
-        setHasMore(data.hasMore || false);
-        setCurrentPage(page);
-      } else {
-        if (res.status === 401 || res.status === 403) {
-          showToast('Phiên đăng nhập hết hạn hoặc không có quyền truy cập.', 'error');
-        } else {
-          showToast(`Lỗi tải dữ liệu kho hàng (${res.status})`, 'error');
-        }
-      }
-    } catch (err) {
+      const res = await api.get(url);
+      setInventory(res.data.content || []);
+      setHasMore(res.data.hasMore || false);
+      setCurrentPage(page);
+    } catch (err: any) {
       console.error(err);
-      showToast('Lỗi kết nối máy chủ.', 'error');
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        showToast('Phiên đăng nhập hết hạn hoặc không có quyền truy cập.', 'error');
+      } else {
+        showToast('Lỗi kết nối máy chủ hoặc tải dữ liệu kho hàng.', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -104,21 +86,13 @@ export default function AdminInventory() {
 
   const executeDeleteInventory = async () => {
     if (pendingDeleteId === null) return;
-    const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/inventory/${pendingDeleteId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        showToast('Xóa tài khoản khỏi kho thành công.', 'success');
-        fetchInventory(cursors[currentPage - 1], currentPage);
-      } else {
-        showToast(`Không thể xóa tài khoản (${res.status})`, 'error');
-      }
+      await api.delete(`/admin/inventory/${pendingDeleteId}`);
+      showToast('Xóa tài khoản khỏi kho thành công.', 'success');
+      fetchInventory(cursors[currentPage - 1], currentPage);
     } catch (err) {
       console.error(err);
-      showToast('Lỗi kết nối máy chủ.', 'error');
+      showToast('Không thể xóa tài khoản hoặc lỗi kết nối.', 'error');
     } finally {
       setPendingDeleteId(null);
     }
@@ -166,12 +140,11 @@ export default function AdminInventory() {
     }
 
     setSubmitting(true);
-    const token = localStorage.getItem('token');
     const isEdit = editingItem !== null;
     const url = isEdit 
-      ? `${API_BASE_URL}/api/admin/inventory/${editingItem.accountItemId}` 
-      : `${API_BASE_URL}/api/admin/inventory`;
-    const method = isEdit ? 'PUT' : 'POST';
+      ? `/admin/inventory/${editingItem.accountItemId}` 
+      : `/admin/inventory`;
+    const method = isEdit ? 'put' : 'post';
 
     const body = isEdit 
       ? {
@@ -188,31 +161,15 @@ export default function AdminInventory() {
         };
 
     try {
-      const res = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(body)
-      });
-
-      if (res.ok) {
-        showToast(isEdit ? 'Cập nhật tài khoản thành công.' : 'Nhập kho tài khoản thành công.', 'success');
-        setIsImportModalOpen(false);
-        setEditingItem(null);
-        fetchInventory(null, 1);
-      } else {
-        let errMsg = isEdit ? 'Có lỗi xảy ra khi cập nhật tài khoản.' : 'Có lỗi xảy ra khi nhập kho.';
-        try {
-          const text = await res.text();
-          errMsg = text || errMsg;
-        } catch {}
-        showToast(errMsg, 'error');
-      }
-    } catch (err) {
+      await api[method](url, body);
+      showToast(isEdit ? 'Cập nhật tài khoản thành công.' : 'Nhập kho tài khoản thành công.', 'success');
+      setIsImportModalOpen(false);
+      setEditingItem(null);
+      fetchInventory(null, 1);
+    } catch (err: any) {
       console.error(err);
-      showToast('Lỗi kết nối máy chủ.', 'error');
+      const errMsg = err.response?.data?.message || err.response?.data || (isEdit ? 'Có lỗi xảy ra khi cập nhật tài khoản.' : 'Có lỗi xảy ra khi nhập kho.');
+      showToast(errMsg, 'error');
     } finally {
       setSubmitting(false);
     }

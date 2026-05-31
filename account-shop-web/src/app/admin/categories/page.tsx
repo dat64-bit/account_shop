@@ -7,6 +7,7 @@ import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
 import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
 import { API_BASE_URL } from '@/lib/config';
+import api from '@/lib/axios';
 
 const Plus = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -51,25 +52,18 @@ export default function AdminCategories() {
   const fetchData = async (lastId: number | null, page: number) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-      let url = `${API_BASE_URL}/api/admin/categories?limit=15`;
+      let url = `/admin/categories?limit=15`;
       if (lastId !== null) url += `&lastId=${lastId}`;
       if (isActiveFilter !== undefined) url += `&isActive=${isActiveFilter}`;
       if (debouncedKeyword.trim()) url += `&keyword=${encodeURIComponent(debouncedKeyword.trim())}`;
 
-      const catRes = await fetch(url, { headers });
-      if (catRes.ok) {
-        const data = await catRes.json();
-        setCategories(data.content || []);
-        setHasMore(data.hasMore || false);
-        setCurrentPage(page);
-      } else {
-        showToast('Lỗi khi tải danh sách danh mục.', 'error');
-      }
+      const catRes = await api.get(url);
+      setCategories(catRes.data.content || []);
+      setHasMore(catRes.data.hasMore || false);
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching data:", error);
-      showToast('Lỗi kết nối máy chủ.', 'error');
+      showToast('Lỗi kết nối máy chủ hoặc tải danh mục.', 'error');
     } finally {
       setLoading(false);
     }
@@ -120,24 +114,15 @@ export default function AdminCategories() {
     const target = category || pendingCategory;
     if (!target) return;
 
-    const token = localStorage.getItem('token');
     const updatedCategory = { ...target, isActive: !target.isActive };
     const actionText = updatedCategory.isActive ? 'Bật' : 'Tắt';
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/categories`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(updatedCategory)
-      });
-      if (res.ok) {
-        showToast(`${actionText} danh mục thành công.`, 'success');
-        fetchData(cursors[currentPage - 1], currentPage);
-      } else {
-        showToast(`Không thể ${actionText.toLowerCase()} danh mục (${res.status}).`, 'error');
-      }
+      await api.post('/admin/categories', updatedCategory);
+      showToast(`${actionText} danh mục thành công.`, 'success');
+      fetchData(cursors[currentPage - 1], currentPage);
     } catch (err) {
       console.error(err);
-      showToast('Lỗi kết nối máy chủ.', 'error');
+      showToast(`Không thể ${actionText.toLowerCase()} danh mục.`, 'error');
     } finally {
       setPendingCategory(null);
     }
@@ -145,27 +130,18 @@ export default function AdminCategories() {
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
     const body = {
       ...categoryForm,
       ...(editingCategory ? { categoryId: editingCategory.categoryId } : {})
     };
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/categories`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(body)
-      });
-      if (res.ok) {
-        setCategoryModalOpen(false);
-        showToast(editingCategory ? 'Cập nhật danh mục thành công.' : 'Thêm danh mục mới thành công.', 'success');
-        fetchData(cursors[currentPage - 1], currentPage);
-      } else {
-        showToast(`Lỗi lưu danh mục (${res.status})`, 'error');
-      }
+      await api.post('/admin/categories', body);
+      setCategoryModalOpen(false);
+      showToast(editingCategory ? 'Cập nhật danh mục thành công.' : 'Thêm danh mục mới thành công.', 'success');
+      fetchData(cursors[currentPage - 1], currentPage);
     } catch (error) {
       console.error("Error saving category:", error);
-      showToast('Lỗi kết nối máy chủ.', 'error');
+      showToast('Lỗi lưu danh mục hoặc kết nối máy chủ.', 'error');
     }
   };
 

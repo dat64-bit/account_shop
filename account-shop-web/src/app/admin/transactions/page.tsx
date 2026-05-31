@@ -5,6 +5,7 @@ import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
 import { API_BASE_URL } from '@/lib/config';
+import api from '@/lib/axios';
 
 export default function AdminTransactions() {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -31,25 +32,18 @@ export default function AdminTransactions() {
   const fetchData = async (lastId: number | null, page: number) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-      let url = `${API_BASE_URL}/api/admin/transactions?limit=15`;
+      let url = `/admin/transactions?limit=15`;
       if (lastId !== null) url += `&lastId=${lastId}`;
       if (statusFilter !== undefined) url += `&statusId=${statusFilter}`;
       if (debouncedKeyword.trim()) url += `&keyword=${encodeURIComponent(debouncedKeyword.trim())}`;
 
-      const res = await fetch(url, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setTransactions(data.content || []);
-        setHasMore(data.hasMore || false);
-        setCurrentPage(page);
-      } else {
-        showToast('Lỗi khi tải danh sách giao dịch.', 'error');
-      }
+      const res = await api.get(url);
+      setTransactions(res.data.content || []);
+      setHasMore(res.data.hasMore || false);
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching transactions:", error);
-      showToast('Lỗi kết nối máy chủ.', 'error');
+      showToast('Lỗi kết nối máy chủ hoặc tải giao dịch.', 'error');
     } finally {
       setLoading(false);
     }

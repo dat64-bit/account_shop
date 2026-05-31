@@ -17,6 +17,7 @@ import {
 import { Line, Bar } from 'react-chartjs-2';
 import Link from 'next/link';
 import { API_BASE_URL } from '@/lib/config';
+import api from '@/lib/axios';
 
 ChartJS.register(
   CategoryScale, LinearScale, PointElement, LineElement,
@@ -80,14 +81,9 @@ export default function AdminOverview() {
   const [isMounted, setIsMounted] = useState(false);
 
   const fetchStats = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/dashboard`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) setStats(await res.json());
+      const res = await api.get('/admin/dashboard');
+      setStats(res.data);
     } catch (error) {
       console.error("Fetch Stats Error:", error);
     } finally {

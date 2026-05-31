@@ -53,7 +53,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = (token: string) => {
-    localStorage.setItem('token', token); // Hỗ trợ tương thích ngược nếu cần
     try {
       const decoded = jwtDecode<any>(token);
       const rawRole = decoded.role || '';
@@ -76,7 +75,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) {
       console.error("Logout API error:", e);
     }
-    localStorage.removeItem('token');
     localStorage.removeItem('user_info');
     setUser(null);
     window.location.href = '/';

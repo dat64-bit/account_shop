@@ -6,6 +6,7 @@ import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
 import { API_BASE_URL } from '@/lib/config';
+import api from '@/lib/axios';
 
 const Plus = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -32,32 +33,19 @@ export default function AdminPlans() {
   // Load products & duration plans once
   const loadStaticData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+      const productsRes = await api.get('/public/catalog/products');
+      const productsData = productsRes.data || [];
+      setProducts(productsData);
 
-      const productsRes = await fetch(`${API_BASE_URL}/api/public/catalog/products`);
-      let productsData: any[] = [];
-      if (productsRes.ok) {
-        productsData = await productsRes.json();
-        setProducts(productsData);
-      } else {
-        showToast('Lỗi tải danh sách sản phẩm.', 'error');
-      }
-
-      const durationRes = await fetch(`${API_BASE_URL}/api/admin/subscription-plans?limit=100`, { headers });
-      let durationData: any[] = [];
-      if (durationRes.ok) {
-        const durationJson = await durationRes.json();
-        durationData = durationJson.content || durationJson || [];
-        setDurationPlans(durationData);
-      } else {
-        showToast('Lỗi tải cấu hình thời hạn gói.', 'error');
-      }
+      const durationRes = await api.get('/admin/subscription-plans?limit=100');
+      const durationJson = durationRes.data;
+      const durationData = durationJson.content || durationJson || [];
+      setDurationPlans(durationData);
 
       return { productsData, durationData };
     } catch (error) {
       console.error("Error loading static data:", error);
-      showToast('Lỗi kết nối máy chủ.', 'error');
+      showToast('Lỗi tải dữ liệu hoặc kết nối máy chủ.', 'error');
       return { productsData: [], durationData: [] };
     }
   };
@@ -65,40 +53,33 @@ export default function AdminPlans() {
   const fetchSubscriptions = async (lastId: number | null, page: number, staticProds?: any[], staticDurations?: any[]) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-      let url = `${API_BASE_URL}/api/admin/product-subscriptions?limit=15`;
+      let url = `/admin/product-subscriptions?limit=15`;
       if (lastId !== null) url += `&lastId=${lastId}`;
       if (productIdFilter !== undefined) url += `&productId=${productIdFilter}`;
 
-      const res = await fetch(url, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        const subList = data.content || [];
-        
-        const prods = staticProds || products;
-        const durations = staticDurations || durationPlans;
+      const res = await api.get(url);
+      const subList = res.data.content || [];
+      
+      const prods = staticProds || products;
+      const durations = staticDurations || durationPlans;
 
-        const joinedData = subList.map((sub: any) => {
-          const product = prods.find((p: any) => p.productId === sub.productId);
-          const duration = durations.find((d: any) => d.planId === sub.planId);
-          return {
-            ...sub,
-            productName: product?.productName || 'N/A',
-            planName: duration?.planName || 'N/A',
-            durationDays: duration?.durationDays || 0
-          };
-        });
+      const joinedData = subList.map((sub: any) => {
+        const product = prods.find((p: any) => p.productId === sub.productId);
+        const duration = durations.find((d: any) => d.planId === sub.planId);
+        return {
+          ...sub,
+          productName: product?.productName || 'N/A',
+          planName: duration?.planName || 'N/A',
+          durationDays: duration?.durationDays || 0
+        };
+      });
 
-        setPlans(joinedData);
-        setHasMore(data.hasMore || false);
-        setCurrentPage(page);
-      } else {
-        showToast('Lỗi khi tải danh sách gói đăng ký.', 'error');
-      }
+      setPlans(joinedData);
+      setHasMore(res.data.hasMore || false);
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching subscriptions:", error);
-      showToast('Lỗi kết nối máy chủ.', 'error');
+      showToast('Lỗi kết nối máy chủ hoặc tải gói đăng ký.', 'error');
     } finally {
       setLoading(false);
     }
@@ -143,27 +124,18 @@ export default function AdminPlans() {
   };
 
   const handleToggleStatus = async (id: number, currentActive: boolean) => {
-    const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/product-subscriptions/${id}/status?isActive=${!currentActive}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        showToast('Cập nhật trạng thái gói thành công.', 'success');
-        fetchSubscriptions(cursors[currentPage - 1], currentPage);
-      } else {
-        showToast(`Lỗi cập nhật trạng thái gói (${res.status})`, 'error');
-      }
+      await api.put(`/admin/product-subscriptions/${id}/status?isActive=${!currentActive}`);
+      showToast('Cập nhật trạng thái gói thành công.', 'success');
+      fetchSubscriptions(cursors[currentPage - 1], currentPage);
     } catch (err) {
       console.error(err);
-      showToast('Lỗi kết nối máy chủ.', 'error');
+      showToast('Lỗi cập nhật trạng thái gói hoặc kết nối máy chủ.', 'error');
     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
     const body: any = {
       productId: Number(form.productId),
       planId: Number(form.planId),
@@ -173,26 +145,14 @@ export default function AdminPlans() {
     if (editingSub) body.productSubscriptionId = editingSub.productSubscriptionId;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/product-subscriptions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(body)
-      });
-      if (res.ok) {
-        setModalOpen(false);
-        showToast(editingSub ? 'Cập nhật gói thành công.' : 'Thêm gói mới thành công.', 'success');
-        fetchSubscriptions(cursors[currentPage - 1], currentPage);
-      } else {
-        let errorMsg = "";
-        try {
-          const text = await res.text();
-          try { const json = JSON.parse(text); errorMsg = json.message || json.error || text; } catch { errorMsg = text || res.statusText || "Lỗi không xác định"; }
-        } catch { errorMsg = res.statusText || "Lỗi hệ thống"; }
-        showToast(`Lỗi (${res.status}): ${errorMsg}`, 'error');
-      }
-    } catch (error) {
+      await api.post('/admin/product-subscriptions', body);
+      setModalOpen(false);
+      showToast(editingSub ? 'Cập nhật gói thành công.' : 'Thêm gói mới thành công.', 'success');
+      fetchSubscriptions(cursors[currentPage - 1], currentPage);
+    } catch (error: any) {
       console.error("Error saving plan:", error);
-      showToast('Lỗi kết nối máy chủ.', 'error');
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Lỗi hệ thống hoặc kết nối.';
+      showToast(`Lỗi: ${errorMsg}`, 'error');
     }
   };
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Portal from '@/components/Portal';
 import { AdminPagination } from '@/components/admin/AdminPagination';
 import { API_BASE_URL } from '@/lib/config';
+import api from '@/lib/axios';
 
 
 const Plus = () => (
@@ -86,20 +87,11 @@ export default function AdminProducts() {
 
   const fetchMetadata = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+      const catRes = await api.get('/admin/categories?limit=1000');
+      setCategories(catRes.data.content || catRes.data || []);
 
-      const catRes = await fetch(`${API_BASE_URL}/api/admin/categories?limit=1000`, { headers });
-      if (catRes.ok) {
-        const data = await catRes.json();
-        setCategories(data.content || data || []);
-      }
-
-      const durationRes = await fetch(`${API_BASE_URL}/api/admin/subscription-plans?limit=1000`, { headers });
-      if (durationRes.ok) {
-        const data = await durationRes.json();
-        setDurationPlans(data.content || data || []);
-      }
+      const durationRes = await api.get('/admin/subscription-plans?limit=1000');
+      setDurationPlans(durationRes.data.content || durationRes.data || []);
     } catch (error) {
       console.error("Error fetching metadata:", error);
     }
@@ -108,21 +100,16 @@ export default function AdminProducts() {
   const fetchProducts = async (lastId: number | null, page: number) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-      let url = `${API_BASE_URL}/api/admin/products?limit=15`;
+      let url = `/admin/products?limit=15`;
       if (lastId !== null) url += `&lastId=${lastId}`;
       if (categoryIdFilter !== undefined) url += `&categoryId=${categoryIdFilter}`;
       if (statusIdFilter !== undefined) url += `&statusId=${statusIdFilter}`;
       if (debouncedKeyword.trim()) url += `&keyword=${encodeURIComponent(debouncedKeyword.trim())}`;
 
-      const productsRes = await fetch(url, { headers });
-      if (productsRes.ok) {
-        const data = await productsRes.json();
-        setProducts(data.content || []);
-        setHasMore(data.hasMore || false);
-        setCurrentPage(page);
-      }
+      const productsRes = await api.get(url);
+      setProducts(productsRes.data.content || []);
+      setHasMore(productsRes.data.hasMore || false);
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching products:", error);
     } finally {
@@ -165,15 +152,8 @@ export default function AdminProducts() {
 
   const fetchProductPlans = async (productId: number) => {
     try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-      const res = await fetch(`${API_BASE_URL}/api/admin/product-subscriptions?productId=${productId}&limit=100`, { headers });
-      if (!res.ok) {
-        setProductPlans([]);
-        return;
-      }
-      const data = await res.json();
-      const subList = data.content || [];
+      const res = await api.get(`/admin/product-subscriptions?productId=${productId}&limit=100`);
+      const subList = res.data.content || [];
 
       const filtered = subList.map((p: any) => {
         const duration = durationPlans.find((d: any) => d.planId === p.planId);
@@ -260,43 +240,27 @@ export default function AdminProducts() {
     }
 
     setUploading(true);
-    const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/files/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
+      const res = await api.post('/admin/files/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        setProductForm(prev => ({ ...prev, imageUrl: data.url }));
-        showToast('success', 'Đăng tải hình ảnh thành công!');
-      } else {
-        const errorText = await res.text();
-        showToast('error', errorText || 'Có lỗi xảy ra khi tải ảnh lên.');
-      }
-    } catch (err) {
+      setProductForm(prev => ({ ...prev, imageUrl: res.data.url }));
+      showToast('success', 'Đăng tải hình ảnh thành công!');
+    } catch (err: any) {
       console.error("Error uploading image:", err);
-      showToast('error', 'Lỗi kết nối khi tải ảnh.');
+      showToast('error', err.response?.data || 'Có lỗi xảy ra khi tải ảnh lên.');
     } finally {
       setUploading(false);
     }
   };
 
   const handleToggleProductStatus = async (id: number, currentStatus: number) => {
-    const token = localStorage.getItem('token');
     const newStatus = currentStatus === 1 ? 2 : 1;
     try {
-      await fetch(`${API_BASE_URL}/api/admin/products/${id}/status?statusId=${newStatus}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await api.put(`/admin/products/${id}/status?statusId=${newStatus}`);
       fetchProducts(cursors[currentPage - 1], currentPage);
     } catch (err) {
       console.error(err);
@@ -305,36 +269,24 @@ export default function AdminProducts() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
     const url = editingProduct
-      ? `${API_BASE_URL}/api/admin/products/${editingProduct.productId}`
-      : `${API_BASE_URL}/api/admin/products`;
-    const method = editingProduct ? 'PUT' : 'POST';
+      ? `/admin/products/${editingProduct.productId}`
+      : `/admin/products`;
+    const method = editingProduct ? 'put' : 'post';
 
     try {
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(productForm)
-      });
-      if (res.ok) {
-        showToast('success', editingProduct ? 'Đã cập nhật sản phẩm thành công!' : 'Đã tạo sản phẩm mới thành công!');
-        fetchProducts(cursors[currentPage - 1], currentPage);
-        setView('list');
-      } else {
-        showToast('error', 'Có lỗi xảy ra khi lưu sản phẩm.');
-      }
+      await api[method](url, productForm);
+      showToast('success', editingProduct ? 'Đã cập nhật sản phẩm thành công!' : 'Đã tạo sản phẩm mới thành công!');
+      fetchProducts(cursors[currentPage - 1], currentPage);
+      setView('list');
     } catch (error) {
       console.error("Error saving product:", error);
+      showToast('error', 'Có lỗi xảy ra khi lưu sản phẩm.');
     }
   };
 
   const handleSavePlan = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
     const body = {
       productId: selectedProduct.productId,
       planId: Number(planForm.planId),
@@ -344,35 +296,19 @@ export default function AdminProducts() {
     };
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/product-subscriptions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(body)
-      });
-
-      if (res.ok) {
-        showToast('success', editingPlan ? 'Đã cập nhật giá bán thành công!' : 'Đã thêm mức giá mới thành công!');
-        fetchProductPlans(selectedProduct.productId);
-        setPlanModalOpen(false);
-      } else {
-        showToast('error', 'Có lỗi xảy ra khi lưu bảng giá.');
-      }
+      await api.post('/admin/product-subscriptions', body);
+      showToast('success', editingPlan ? 'Đã cập nhật giá bán thành công!' : 'Đã thêm mức giá mới thành công!');
+      fetchProductPlans(selectedProduct.productId);
+      setPlanModalOpen(false);
     } catch (err) {
       console.error(err);
-      showToast('error', 'Lỗi kết nối máy chủ.');
+      showToast('error', 'Có lỗi xảy ra khi lưu bảng giá.');
     }
   };
 
   const handleTogglePlanStatus = async (plan: any) => {
-    const token = localStorage.getItem('token');
     try {
-      await fetch(`${API_BASE_URL}/api/admin/product-subscriptions/${plan.productSubscriptionId}/status?isActive=${!plan.isActive}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await api.put(`/admin/product-subscriptions/${plan.productSubscriptionId}/status?isActive=${!plan.isActive}`);
       fetchProductPlans(selectedProduct.productId);
     } catch (err) {
       console.error(err);
