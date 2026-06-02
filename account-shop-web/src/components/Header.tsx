@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 import AuthModal from './AuthModal';
+import CartDrawer from './CartDrawer';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/lib/config';
 
 // SVG Components
 const Search = ({ size = 18 }) => (
@@ -52,8 +55,27 @@ const ShieldCheck = () => (
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const { cartCount, setIsCartOpen } = useCart();
   const [modalMode, setModalMode] = useState<'login' | 'register' | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [drawerCategories, setDrawerCategories] = useState<any[]>([]);
+  const [drawerProducts, setDrawerProducts] = useState<any[]>([]);
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+
+  const handleToggleMobileMenu = async () => {
+    setMobileMenuOpen(true);
+    if (drawerCategories.length === 0) {
+      try {
+        const catRes = await fetch(`${API_BASE_URL}/api/public/catalog/categories`);
+        const prodRes = await fetch(`${API_BASE_URL}/api/public/catalog/products`);
+        if (catRes.ok) setDrawerCategories(await catRes.json());
+        if (prodRes.ok) setDrawerProducts(await prodRes.json());
+      } catch (err) {
+        console.error("Error fetching mobile menu data", err);
+      }
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -88,17 +110,16 @@ export default function Header() {
           </div>
 
           <div className="header-actions">
+
             {user ? (
               <>
                 <div className="user-nav-group">
                   <Link href={user.role === 'ROLE_ADMIN' ? '/admin' : '/dashboard'} className="user-greeting" title={user.role === 'ROLE_ADMIN' ? 'Vào trang quản trị' : 'Vào Dashboard cá nhân'}>
                     <UserIcon size={16} /> <span>{user.sub}</span>
                   </Link>
-                  {user.role === 'ROLE_ADMIN' && (
-                    <Link href="/admin" className="admin-link-btn">
-                      Quản trị
-                    </Link>
-                  )}
+                  <Link href={user.role === 'ROLE_ADMIN' ? '/admin' : '/dashboard'} className="btn-primary sm">
+                    {user.role === 'ROLE_ADMIN' ? 'Quản trị' : 'Dashboard'}
+                  </Link>
                 </div>
                 <button className="btn-text logout-btn" onClick={logout}>
                   <LogOut size={15} style={{ marginRight: 4, verticalAlign: 'middle' }} />
@@ -111,10 +132,10 @@ export default function Header() {
                 <button className="btn-primary" onClick={() => setModalMode('register')}>Đăng ký</button>
               </>
             )}
-            <button className="cart-btn">
+            <button className="cart-btn" onClick={() => setIsCartOpen(true)}>
               <ShoppingCart size={17} />
               Giỏ hàng
-              <span className="cart-badge">0</span>
+              {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </button>
           </div>
         </div>
@@ -122,7 +143,7 @@ export default function Header() {
         {/* Nav Bar */}
         <div className="nav-bar">
           <div className="container nav-content">
-            <div className="category-header">
+            <div className="category-header" onClick={handleToggleMobileMenu}>
               <span style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 18 }}>☰</span>
               DANH MỤC SẢN PHẨM
             </div>
@@ -149,6 +170,55 @@ export default function Header() {
           onClose={() => setModalMode(null)}
           onSwitchMode={setModalMode}
         />
+      )}
+
+      <CartDrawer />
+
+      {mobileMenuOpen && (
+        <div className="mobile-drawer-overlay" onClick={() => setMobileMenuOpen(false)}>
+          <div className="mobile-drawer animate-in slide-in-from-left duration-300" onClick={e => e.stopPropagation()}>
+            <div className="drawer-header">
+              <h3>Danh mục sản phẩm</h3>
+              <button className="btn-close-drawer" onClick={() => setMobileMenuOpen(false)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            <div className="drawer-content">
+              {drawerCategories.length === 0 ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>Đang tải...</div>
+              ) : (
+                drawerCategories.map(cat => (
+                  <div key={cat.categoryId} className="drawer-cat-item">
+                    <div 
+                      className={`drawer-cat-title ${expandedCat === cat.categoryName ? 'active' : ''}`}
+                      onClick={() => setExpandedCat(expandedCat === cat.categoryName ? null : cat.categoryName)}
+                    >
+                      {cat.categoryName}
+                      <span className="drawer-cat-arrow">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: expandedCat === cat.categoryName ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </span>
+                    </div>
+                    {expandedCat === cat.categoryName && (
+                      <div className="drawer-cat-products animate-in slide-in-from-top-2">
+                        {drawerProducts.filter(p => p.categoryName === cat.categoryName).length > 0 ? (
+                          drawerProducts.filter(p => p.categoryName === cat.categoryName).map(p => (
+                            <Link href={`/product/${p.productId}`} key={p.productId} className="drawer-product-link" onClick={() => setMobileMenuOpen(false)}>
+                              <span className="dot"></span> {p.productName}
+                            </Link>
+                          ))
+                        ) : (
+                          <div className="drawer-empty-products">Chưa có sản phẩm</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

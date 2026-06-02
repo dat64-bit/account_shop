@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 import api from '@/lib/axios';
 
 interface User {
+  id?: number;
   sub: string;
   role: string;
   email?: string;
@@ -12,7 +13,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (token: string) => void;
+  login: (data: any) => void;
   logout: () => void;
 }
 
@@ -37,6 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const rawRole = res.data.role || '';
         const role = rawRole.startsWith('ROLE_') ? rawRole : `ROLE_${rawRole.toUpperCase()}`;
         const userData = {
+          id: res.data.accountId,
           sub: res.data.username,
           role: role,
           email: res.data.email
@@ -52,16 +54,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     checkSession();
   }, []);
 
-  const login = (token: string) => {
+  const login = (data: any) => {
     try {
-      const decoded = jwtDecode<any>(token);
-      const rawRole = decoded.role || '';
-      const role = rawRole.startsWith('ROLE_') ? rawRole : `ROLE_${rawRole.toUpperCase()}`;
-      const userData = {
-        sub: decoded.sub,
-        role: role,
-        email: decoded.email || ''
-      };
+      let userData;
+      if (typeof data === 'string') {
+        const decoded = jwtDecode<any>(data);
+        const rawRole = decoded.role || '';
+        const role = rawRole.startsWith('ROLE_') ? rawRole : `ROLE_${rawRole.toUpperCase()}`;
+        userData = {
+          sub: decoded.sub,
+          role: role,
+          email: decoded.email || ''
+        };
+      } else {
+        const rawRole = data.role || '';
+        const role = rawRole.startsWith('ROLE_') ? rawRole : `ROLE_${rawRole.toUpperCase()}`;
+        userData = {
+          id: data.accountId,
+          sub: data.username,
+          role: role,
+          email: data.email || ''
+        };
+      }
       setUser(userData);
       localStorage.setItem('user_info', JSON.stringify(userData));
     } catch (e) {

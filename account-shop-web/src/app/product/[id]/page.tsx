@@ -6,7 +6,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import Portal from '@/components/Portal';
+import { useCart } from '@/context/CartContext';
 import { API_BASE_URL } from '@/lib/config';
+import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 
 interface Product {
   productId: number;
@@ -45,12 +47,14 @@ const X = ({ size = 16 }) => (
 
 export default function ProductDetail() {
   const { id } = useParams();
+  const { addToCart, setIsCartOpen } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [subscriptions, setSubscriptions] = useState<ProductSubscription[]>([]);
   const [selectedSubscription, setSelectedSubscription] = useState<ProductSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('desc');
   const [contactModalOpen, setContactModalOpen] = useState(false);
+  const { toast, showToast } = useAdminToast();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -95,6 +99,7 @@ export default function ProductDetail() {
   return (
     <>
       <Header />
+      <AdminToast toast={toast} />
       <main className="product-detail-page">
         <div className="container">
           {/* Breadcrumb */}
@@ -192,8 +197,44 @@ export default function ProductDetail() {
                 </div>
               ) : (
                 <div className="info-actions">
-                  <button className="btn-buy-now">MUA NGAY</button>
-                  <button className="btn-add-cart">THÊM VÀO GIỎ</button>
+                  <button 
+                    className="btn-buy-now"
+                    onClick={() => {
+                      if (!selectedSubscription) return;
+                      addToCart({
+                        productId: p.productId,
+                        productName: p.productName,
+                        planId: selectedSubscription.planId,
+                        planName: selectedSubscription.planName,
+                        price: selectedSubscription.price,
+                        quantity: 1,
+                        imageUrl: p.imageUrl,
+                        categoryName: p.categoryName
+                      });
+                      setIsCartOpen(true);
+                    }}
+                  >
+                    MUA NGAY
+                  </button>
+                  <button 
+                    className="btn-add-cart"
+                    onClick={() => {
+                      if (!selectedSubscription) return;
+                      addToCart({
+                        productId: p.productId,
+                        productName: p.productName,
+                        planId: selectedSubscription.planId,
+                        planName: selectedSubscription.planName,
+                        price: selectedSubscription.price,
+                        quantity: 1,
+                        imageUrl: p.imageUrl,
+                        categoryName: p.categoryName
+                      });
+                      showToast('Đã thêm vào giỏ hàng', 'success');
+                    }}
+                  >
+                    THÊM VÀO GIỎ
+                  </button>
                 </div>
               )}
 

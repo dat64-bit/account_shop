@@ -10,7 +10,7 @@ import { API_BASE_URL } from '@/lib/config';
 import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
 
 interface Category { categoryId: number; categoryName: string; description: string; }
-interface Product { productId: number; productName: string; categoryName: string; imageUrl?: string; }
+interface Product { productId: number; productName: string; categoryName: string; imageUrl?: string; startingPrice?: number; }
 
 // SVG Components
 const ChevronRight = () => (
@@ -150,7 +150,11 @@ export default function Home() {
                     <div className="product-card-body">
                       <div className="product-card-cat">{p.categoryName}</div>
                       <Link href={`/product/${p.productId}`} className="product-card-name">{p.productName}</Link>
-                      <div className="product-card-price">Liên hệ</div>
+                      <div className="product-card-price">
+                        {p.startingPrice != null 
+                          ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.startingPrice) 
+                          : 'Liên hệ'}
+                      </div>
                     </div>
                     <div className="product-card-action">
                       <Link href={`/product/${p.productId}`} className="btn-premium">

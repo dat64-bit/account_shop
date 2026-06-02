@@ -52,7 +52,7 @@ export default function AuthModal({ mode, onClose, onSwitchMode }: AuthModalProp
     setLoading(true); setError('');
     try {
       const res = await api.post('/auth/login', { username: form.username, password: form.password });
-      login(res.data.token ?? res.data);
+      login(res.data);
       onClose();
     } catch (err: any) {
       setError(err.response?.data || 'Tên đăng nhập hoặc mật khẩu không đúng.');

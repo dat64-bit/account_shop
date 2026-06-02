@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 interface Category {
   categoryId: number;
@@ -107,10 +108,10 @@ export default function Hero({ categories, products, loading }: { categories: Ca
             <div className="submenu-grid">
               {filteredProducts.length > 0 ? (
                 filteredProducts.map(p => (
-                  <div key={p.productId} className="submenu-item">
+                  <Link href={`/product/${p.productId}`} key={p.productId} className="submenu-item" style={{ textDecoration: 'none', color: 'inherit' }}>
                     <span className="submenu-dot"></span>
                     {p.productName}
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <div className="submenu-empty">Chưa có sản phẩm trong danh mục này</div>
