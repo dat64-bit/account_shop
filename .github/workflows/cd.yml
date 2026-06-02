@@ -92,17 +92,23 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
+            set -e # Dừng lại ngay nếu có bất kỳ lệnh nào bị lỗi
+            
+            # Đăng nhập GHCR trên VPS (Cần thiết nếu image là Private)
+            # Khuyến nghị: Vào Github -> Packages -> chọn Image -> Package Settings -> Đổi Visibility thành Public
+            # Nếu không đổi thành Public, lệnh pull dưới đây sẽ báo lỗi "unauthorized"
+            
             # Di chuyển đến thư mục dự án trên server
             cd ~/account_shop
 
             # Cập nhật docker-compose.yml mới nhất từ GitHub
             curl -fsSL "https://raw.githubusercontent.com/dat64-bit/account_shop/main/docker-compose.yml" -o ~/account_shop/docker-compose.yml
 
-            # Pull image mới nhất từ GHCR
+            # Pull image mới nhất từ GHCR (Nếu báo lỗi ở đây, hãy xem lưu ý ở trên)
             docker compose pull
 
-            # Restart containers với image mới (không downtime với --no-deps)
-            docker compose up -d
+            # Tắt và tạo lại containers với image mới
+            docker compose up -d --force-recreate
 
             # Dọn dẹp image cũ để tránh đầy ổ cứng
             docker image prune -f
