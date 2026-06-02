@@ -23,7 +23,7 @@ public class TicketController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         return accountRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
     }
 
     @PostMapping

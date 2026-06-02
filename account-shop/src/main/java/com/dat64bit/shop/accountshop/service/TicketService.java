@@ -50,7 +50,7 @@ public class TicketService {
 
     public Ticket getTicketById(Integer ticketId) {
         return ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu hỗ trợ"));
     }
 
     public List<TicketReply> getRepliesByTicket(Integer ticketId) {

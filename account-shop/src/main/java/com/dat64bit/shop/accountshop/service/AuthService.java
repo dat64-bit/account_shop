@@ -48,14 +48,14 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = tokenProvider.generateToken(authentication);
         Account account = accountRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         // Lưu active token vào DB để phục vụ kiểm tra/thu hồi phiên đăng nhập
         account.setToken(jwt);
         accountRepository.save(account);
 
         Role role = roleRepository.findById(account.getRoleId())
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy quyền hạn"));
 
         AuthResponse response = new AuthResponse();
         response.setToken(jwt);
@@ -64,6 +64,7 @@ public class AuthService {
         response.setUsername(account.getUsername());
         response.setEmail(account.getEmail());
         response.setRole(role.getRoleName());
+        response.setBalance(account.getBalance());
         return response;
     }
 
@@ -77,10 +78,10 @@ public class AuthService {
 
     public AuthResponse getCurrentUser(String username) {
         Account account = accountRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
 
         Role role = roleRepository.findById(account.getRoleId())
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy quyền hạn"));
 
         AuthResponse response = new AuthResponse();
         response.setToken(account.getToken());
@@ -89,23 +90,24 @@ public class AuthService {
         response.setUsername(account.getUsername());
         response.setEmail(account.getEmail());
         response.setRole(role.getRoleName());
+        response.setBalance(account.getBalance());
         return response;
     }
 
     public AuthResponse register(RegisterRequest request) {
         if (accountRepository.findAll().stream().anyMatch(a -> a.getUsername().equals(request.getUsername()))) {
-            throw new RuntimeException("Error: Username is already taken!");
+            throw new RuntimeException("Lỗi: Tên đăng nhập đã tồn tại!");
         }
 
         if (accountRepository.findAll().stream().anyMatch(a -> a.getEmail().equals(request.getEmail()))) {
-            throw new RuntimeException("Error: Email is already in use!");
+            throw new RuntimeException("Lỗi: Email đã được sử dụng!");
         }
 
         // Mặc định tạo Role Customer
         Role role = roleRepository.findAll().stream()
                 .filter(r -> r.getRoleName().equalsIgnoreCase("Customer"))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy quyền hạn."));
 
         // Mặc định Status Active (giả sử ID = 1)
         

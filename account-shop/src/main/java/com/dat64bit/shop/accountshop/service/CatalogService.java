@@ -47,7 +47,7 @@ public class CatalogService {
 
     public ProductDTO getProductById(Integer productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
         return mapToProductDTO(product);
     }
 
@@ -79,6 +79,13 @@ public class CatalogService {
 
         categoryRepository.findById(product.getCategoryId())
                 .ifPresent(c -> dto.setCategoryName(c.getCategoryName()));
+
+        java.math.BigDecimal minPrice = subscriptionRepository.findAll().stream()
+                .filter(s -> s.getProductId().equals(product.getProductId()) && s.getPrice() != null)
+                .map(ProductSubscription::getPrice)
+                .min(java.math.BigDecimal::compareTo)
+                .orElse(null);
+        dto.setStartingPrice(minPrice);
 
         return dto;
     }

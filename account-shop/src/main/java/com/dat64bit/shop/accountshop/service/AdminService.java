@@ -140,7 +140,7 @@ public class AdminService {
     @Transactional
     public void updateUserStatus(Integer accountId, Integer statusId) {
         Account acc = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
         acc.setAccountStatusId(statusId);
         accountRepository.save(acc);
     }
@@ -219,7 +219,7 @@ public class AdminService {
     @Transactional
     public void toggleProductStatus(Integer productId, Integer statusId) {
         Product p = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
         p.setProductStatusId(statusId);
         productRepository.save(p);
     }
@@ -251,7 +251,7 @@ public class AdminService {
     @Transactional
     public void updateInventory(Integer id, InventoryRequest request) {
         AccountItem item = accountItemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Account item not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản để bán"));
         item.setProductId(request.getProductId());
         item.setAccountEmail(request.getEmailOrUsername());
         item.setAccountPassword(request.getPassword());
@@ -265,7 +265,7 @@ public class AdminService {
     @Transactional
     public void replaceAccountForOrder(Integer orderDetailId, Integer newAccountItemId, Integer newAccountSlotId) {
         OrderDetail detail = orderDetailRepository.findById(orderDetailId)
-                .orElseThrow(() -> new RuntimeException("Order detail not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chi tiết đơn hàng"));
 
         // Thu hồi account/slot cũ (đánh dấu lỗi/expired)
         if (detail.getAccountSlotId() != null) {
@@ -309,10 +309,10 @@ public class AdminService {
 
     public List<AvailableReplacementDTO> getAvailableReplacements(Integer orderDetailId) {
         OrderDetail detail = orderDetailRepository.findById(orderDetailId)
-                .orElseThrow(() -> new RuntimeException("Order detail not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chi tiết đơn hàng"));
         
         ProductSubscription sub = productSubscriptionRepository.findById(detail.getProductSubscriptionId())
-                .orElseThrow(() -> new RuntimeException("Product subscription not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy gói đăng ký sản phẩm"));
         Integer productId = sub.getProductId();
 
         List<AvailableReplacementDTO> replacements = new java.util.ArrayList<>();
@@ -365,7 +365,7 @@ public class AdminService {
     @Transactional
     public AccountSlot addSlotToAccountItem(Integer accountItemId, String slotName, String pinCode) {
         AccountItem item = accountItemRepository.findById(accountItemId)
-                .orElseThrow(() -> new RuntimeException("Account item not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản để bán"));
         AccountSlot slot = new AccountSlot();
         slot.setAccountItemId(accountItemId);
         slot.setSlotName(slotName);
@@ -378,7 +378,7 @@ public class AdminService {
     @Transactional
     public AccountSlot updateSlot(Integer slotId, String slotName, String pinCode, Integer slotStatusId) {
         AccountSlot slot = accountSlotRepository.findById(slotId)
-                .orElseThrow(() -> new RuntimeException("Slot not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Slot chia sẻ"));
         slot.setSlotName(slotName);
         slot.setPinCode(pinCode != null ? pinCode : "0000");
         if (slotStatusId != null) {
@@ -396,10 +396,10 @@ public class AdminService {
     @Transactional
     public void refundOrder(Integer orderId, java.math.BigDecimal refundAmount) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
         if (order.getOrderStatusId() != null && order.getOrderStatusId() == 5) {
-            throw new RuntimeException("Order is already refunded");
+            throw new RuntimeException("Đơn hàng đã được hoàn tiền");
         }
 
         // Cập nhật trạng thái đơn hàng thành Refunded (5)
@@ -412,7 +412,7 @@ public class AdminService {
 
         // Hoàn tiền vào ví khách hàng
         Account customerAcc = accountRepository.findById(order.getAccountId())
-                .orElseThrow(() -> new RuntimeException("Customer account not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản khách hàng"));
         customerAcc.setBalance(customerAcc.getBalance().add(finalAmount));
         accountRepository.save(customerAcc);
 
@@ -448,7 +448,7 @@ public class AdminService {
     @Transactional
     public void resolveTicket(Integer ticketId, String resolutionNotes, Integer newStatusId) {
         Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu hỗ trợ"));
         ticket.setTicketStatusId(newStatusId);
         ticketRepository.save(ticket);
 
@@ -464,7 +464,7 @@ public class AdminService {
     public SubscriptionPlan saveSubscriptionPlan(SubscriptionPlan plan) {
         if (plan.getPlanId() != null) {
             SubscriptionPlan existing = subscriptionPlanRepository.findById(plan.getPlanId())
-                    .orElseThrow(() -> new RuntimeException("Plan not found"));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy gói"));
             existing.setPlanName(plan.getPlanName());
             existing.setDurationDays(plan.getDurationDays());
             existing.setIsActive(plan.getIsActive());
@@ -489,7 +489,7 @@ public class AdminService {
         if (sub.getProductSubscriptionId() != null) {
             // Update existing
             ProductSubscription existing = productSubscriptionRepository.findById(sub.getProductSubscriptionId())
-                    .orElseThrow(() -> new RuntimeException("Subscription not found"));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy gói đăng ký"));
             existing.setProductId(sub.getProductId());
             existing.setPlanId(sub.getPlanId());
             existing.setPrice(sub.getPrice());
@@ -509,7 +509,7 @@ public class AdminService {
     @Transactional
     public void toggleProductSubscriptionStatus(Integer id, Boolean isActive) {
         ProductSubscription sub = productSubscriptionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Subscription not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy gói đăng ký"));
         sub.setIsActive(isActive);
         productSubscriptionRepository.save(sub);
     }
@@ -551,6 +551,7 @@ public class AdminService {
                 dto.setEmail(acc.getEmail());
                 dto.setFullName(acc.getFullName());
                 dto.setBalance(acc.getBalance());
+                dto.setBalanceLocked(Boolean.TRUE.equals(acc.getBalanceLocked()));
                 dto.setAccountStatusId(acc.getAccountStatusId());
                 dto.setCreatedAt(acc.getCreatedAt());
                 dto.setRoleName(roleMap.getOrDefault(acc.getRoleId(), "UNKNOWN"));
@@ -714,5 +715,55 @@ public class AdminService {
             }).collect(Collectors.toList());
         }
         return new PagedResponse<>(content, hasMore);
+    }
+
+    @Transactional
+    public void manualCreditBalance(Integer accountId, java.math.BigDecimal amount, String note) {
+        if (amount == null || amount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Số tiền cộng phải lớn hơn 0");
+        }
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+
+        // Cộng tiền vào ví
+        account.setBalance(account.getBalance().add(amount));
+        account.setUpdatedAt(LocalDateTime.now());
+        accountRepository.save(account);
+
+        // Ghi log giao dịch — type 5 = MANUAL_CREDIT (seed nếu chưa có)
+        transactionTypeRepository.findAll().stream()
+                .filter(t -> "MANUAL_CREDIT".equalsIgnoreCase(t.getTypeName()))
+                .findFirst()
+                .orElseGet(() -> {
+                    com.dat64bit.shop.accountshop.entity.TransactionType newType = new com.dat64bit.shop.accountshop.entity.TransactionType();
+                    newType.setTypeName("MANUAL_CREDIT");
+                    newType.setDescription("Cộng tiền thủ công bởi Admin");
+                    return transactionTypeRepository.save(newType);
+                });
+
+        Integer manualCreditTypeId = transactionTypeRepository.findAll().stream()
+                .filter(t -> "MANUAL_CREDIT".equalsIgnoreCase(t.getTypeName()))
+                .findFirst()
+                .map(t -> t.getTransactionTypeId())
+                .orElse(5);
+
+        Transaction tx = new Transaction();
+        tx.setAccountId(accountId);
+        tx.setAmount(amount);
+        tx.setTransactionTypeId(manualCreditTypeId);
+        tx.setTransactionStatusId(2); // SUCCESS
+        tx.setPaymentMethodId(1);     // WALLET
+        tx.setDescription(note != null && !note.isBlank() ? note : "Cộng tiền thủ công bởi Admin");
+        tx.setCreatedAt(LocalDateTime.now());
+        transactionRepository.save(tx);
+    }
+
+    @Transactional
+    public void toggleBalanceLock(Integer accountId, boolean lock) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+        account.setBalanceLocked(lock);
+        account.setUpdatedAt(LocalDateTime.now());
+        accountRepository.save(account);
     }
 }

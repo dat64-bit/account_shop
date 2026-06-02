@@ -51,30 +51,35 @@ public class OrderService {
     public OrderDTO checkout(String username, CheckoutRequest request) {
         // 1. Get Account & lock it for balance update
         Account account = accountRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
                 
         // Pessimistic Lock
         Account lockedAccount = accountRepository.findByIdWithPessimisticLock(account.getAccountId())
-                .orElseThrow(() -> new RuntimeException("Account lock failed"));
+                .orElseThrow(() -> new RuntimeException("Khóa tài khoản thất bại"));
 
         // 2. Determine price
         ProductSubscription sub = subscriptionRepository.findAll().stream()
                 .filter(s -> s.getProductId().equals(request.getProductId()) && s.getPlanId().equals(request.getPlanId()))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Subscription Plan not found for product"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy gói đăng ký cho sản phẩm này"));
                 
         BigDecimal unitPrice = sub.getPrice();
         BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(request.getQuantity()));
 
-        // 3. Check balance
+        // 3. Check balance lock
+        if (Boolean.TRUE.equals(lockedAccount.getBalanceLocked())) {
+            throw new RuntimeException("Số dư tài khoản của bạn đang bị khóa. Vui lòng liên hệ Admin.");
+        }
+
+        // 4. Check balance
         if (lockedAccount.getBalance().compareTo(totalAmount) < 0) {
-            throw new RuntimeException("Insufficient balance");
+            throw new RuntimeException("Số dư không đủ");
         }
 
         // 4. Find available slots
         List<AccountSlot> availableSlots = accountSlotRepository.findAvailableSlotsByProductId(request.getProductId());
         if (availableSlots.size() < request.getQuantity()) {
-            throw new RuntimeException("Out of stock for this product");
+            throw new RuntimeException("Sản phẩm này đã hết hàng");
         }
 
         // 5. Deduct Balance
@@ -133,7 +138,7 @@ public class OrderService {
 
     public List<OrderDTO> getMyOrders(String username) {
         Account account = accountRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
                 
         return orderRepository.findByAccountIdOrderByCreatedAtDesc(account.getAccountId()).stream()
                 .map(o -> {
@@ -231,7 +236,7 @@ public class OrderService {
 
     public PagedResponse<OrderDTO> getMyOrdersPaged(String username, Integer lastId, int limit, Integer statusId, String keyword) {
         Account account = accountRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
         return getOrdersPaged(lastId, limit, statusId, account.getAccountId(), keyword);
     }
 }
