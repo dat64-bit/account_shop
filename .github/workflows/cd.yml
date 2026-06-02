@@ -83,20 +83,26 @@ jobs:
     name: Deploy lên VPS
     runs-on: ubuntu-latest
     needs: [build-backend, build-frontend]   # Đợi cả 2 job build xong
+    permissions:
+      packages: read
+
 
     steps:
       - name: SSH vào server và chạy docker compose
         uses: appleboy/ssh-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
+          envs: GITHUB_TOKEN,GITHUB_ACTOR
           script: |
             set -e # Dừng lại ngay nếu có bất kỳ lệnh nào bị lỗi
             
-            # Đăng nhập GHCR trên VPS (Cần thiết nếu image là Private)
-            # Khuyến nghị: Vào Github -> Packages -> chọn Image -> Package Settings -> Đổi Visibility thành Public
-            # Nếu không đổi thành Public, lệnh pull dưới đây sẽ báo lỗi "unauthorized"
+            # Đăng nhập GHCR trên VPS để có thể pull private images
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
             
             # Di chuyển đến thư mục dự án trên server
             cd ~/account_shop
