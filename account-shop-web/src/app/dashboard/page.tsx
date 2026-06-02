@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Portal from '@/components/Portal';
 import { AdminPagination } from '@/components/admin/AdminPagination';
-import { API_BASE_URL } from '@/lib/config';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 
 interface Order {
@@ -63,12 +63,14 @@ const X = () => (
 
 
 export default function Dashboard() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [checking, setChecking] = useState(true);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Tickets
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -101,7 +103,7 @@ export default function Dashboard() {
       if (lastId) url += `&lastId=${lastId}`;
       if (currentStatusFilter !== undefined) url += `&statusId=${currentStatusFilter}`;
       if (currentKeyword.trim()) url += `&keyword=${encodeURIComponent(currentKeyword.trim())}`;
-      
+
       const res = await api.get(url);
       setOrders(res.data.content || []);
       setOrdersHasMore(res.data.hasMore || false);
@@ -116,7 +118,7 @@ export default function Dashboard() {
       let url = `/user/tickets/my-tickets?limit=15`;
       if (lastId) url += `&lastId=${lastId}`;
       if (currentStatusFilter !== undefined) url += `&statusId=${currentStatusFilter}`;
-      
+
       const res = await api.get(url);
       setTickets(res.data.content || []);
       setTicketsHasMore(res.data.hasMore || false);
@@ -168,39 +170,58 @@ export default function Dashboard() {
     }
   };
 
+  const [userInfo, setUserInfo] = useState<any>(null);
+
   useEffect(() => {
+    let alive = true;
     const storedUserStr = localStorage.getItem('user_info');
     if (!storedUserStr) {
-      window.location.href = '/?error=login_required';
+      setTimeout(() => router.push('/?error=login_required'), 0);
       return;
     }
     try {
       const storedUser = JSON.parse(storedUserStr);
-      if (storedUser.role !== 'ROLE_CUSTOMER') {
-        window.location.href = '/?error=unauthorized';
+      if (storedUser.role !== 'ROLE_CUSTOMER' && storedUser.role !== 'Customer') {
+        setTimeout(() => router.push('/?error=unauthorized'), 0);
         return;
       }
-      setChecking(false);
-      setIsMounted(true);
+      if (alive) {
+        setUserInfo(storedUser);
+        setChecking(false);
+        setIsMounted(true);
+      }
     } catch {
-      window.location.href = '/?error=login_required';
+      setTimeout(() => router.push('/?error=login_required'), 0);
     }
+    return () => { alive = false; };
   }, []);
 
+  const [balance, setBalance] = useState<number | null>(null);
+
   useEffect(() => {
-    if (isMounted) {
-      const initLoad = async () => {
-        setLoading(true);
-        setOrdersCursors([null]);
-        setTicketsCursors([null]);
-        await Promise.all([
-          fetchOrders(null, 1, orderStatusFilter, debouncedOrderKeyword),
-          fetchTickets(null, 1, ticketStatusFilter)
-        ]);
-        setLoading(false);
-      };
-      initLoad();
-    }
+    if (!isMounted) return;
+    let alive = true;
+
+    const initLoad = async () => {
+      if (alive) setLoading(true);
+      setOrdersCursors([null]);
+      setTicketsCursors([null]);
+      await Promise.all([
+        fetchOrders(null, 1, orderStatusFilter, debouncedOrderKeyword),
+        fetchTickets(null, 1, ticketStatusFilter),
+        api.get('/auth/me').then(res => {
+          if (alive && res.data) {
+            setBalance(res.data.balance ?? null);
+          }
+        }).catch(() => {
+          if (alive) setBalance(null);
+        })
+      ]);
+      if (alive) setLoading(false);
+    };
+
+    initLoad();
+    return () => { alive = false; };
   }, [isMounted, orderStatusFilter, debouncedOrderKeyword, ticketStatusFilter]);
 
   const [ticketMessage, setTicketMessage] = useState('');
@@ -249,7 +270,7 @@ export default function Dashboard() {
       <main className="dashboard-page">
         <div className="container">
           <div className="dashboard-layout">
-            
+
             {/* Sidebar điều hướng */}
             <aside className="dashboard-sidebar">
               <div className="user-profile-card">
@@ -257,32 +278,32 @@ export default function Dashboard() {
                   <UserIcon />
                 </div>
                 <div className="user-info">
-                  <span className="user-name">Văn Đạt</span>
-                  <span className="user-email">vdat2@gmail.com</span>
+                  <span className="user-name">{userInfo?.sub || 'Người dùng'}</span>
+                  <span className="user-email">{userInfo?.email || ''}</span>
                 </div>
               </div>
 
               <nav className="dashboard-nav">
-                <button 
-                  className={activeTab === 'overview' ? 'active' : ''} 
+                <button
+                  className={activeTab === 'overview' ? 'active' : ''}
                   onClick={() => setActiveTab('overview')}
                 >
                   <ShoppingBag /> Tổng quan
                 </button>
-                <button 
-                  className={activeTab === 'orders' ? 'active' : ''} 
+                <button
+                  className={activeTab === 'orders' ? 'active' : ''}
                   onClick={() => setActiveTab('orders')}
                 >
                   <Clock /> Lịch sử mua hàng
                 </button>
-                <button 
-                  className={activeTab === 'profile' ? 'active' : ''} 
+                <button
+                  className={activeTab === 'profile' ? 'active' : ''}
                   onClick={() => setActiveTab('profile')}
                 >
                   <UserIcon /> Thông tin cá nhân
                 </button>
-                <button 
-                  className={activeTab === 'tickets' ? 'active' : ''} 
+                <button
+                  className={activeTab === 'tickets' ? 'active' : ''}
                   onClick={() => setActiveTab('tickets')}
                 >
                   <MessageSquare /> Hỗ trợ / Ticket
@@ -291,8 +312,8 @@ export default function Dashboard() {
 
               <div className="sidebar-balance">
                 <span>Số dư tài khoản:</span>
-                <strong className="balance-amount">500.000đ</strong>
-                <button className="btn-deposit">Nạp tiền ngay</button>
+                <strong className="balance-amount">{balance != null ? balance.toLocaleString() + 'đ' : 'Đang cập nhật...'}</strong>
+                <a href="/dashboard/deposit" className="btn-deposit" style={{ textDecoration: 'none', display: 'block', textAlign: 'center' }}>Nạp tiền ngay</a>
               </div>
             </aside>
 
@@ -514,18 +535,18 @@ export default function Dashboard() {
                     <h2 className="card-title">Thông tin tài khoản</h2>
                     <p className="card-subtitle">Cập nhật thông tin cá nhân và mật khẩu</p>
                   </div>
-                  <div style={{ padding: '30px' }}>
+                  <div className="profile-form-body">
                     <div className="profile-form-grid">
                       <div className="form-group">
                         <label>Họ và tên</label>
                         <div className="input-wrapper">
-                          <input type="text" defaultValue="Văn Đạt" />
+                          <input type="text" defaultValue={userInfo?.sub || ''} />
                         </div>
                       </div>
                       <div className="form-group">
                         <label>Địa chỉ Email</label>
                         <div className="input-wrapper">
-                          <input type="email" defaultValue="vdat2@gmail.com" disabled />
+                          <input type="email" defaultValue={userInfo?.email || ''} disabled />
                         </div>
                       </div>
                       <div className="form-group">
@@ -534,14 +555,37 @@ export default function Dashboard() {
                           <input type="text" placeholder="Chưa cập nhật" />
                         </div>
                       </div>
-                      <div className="form-group">
-                        <label>Mật khẩu mới</label>
-                        <div className="input-wrapper">
-                          <input type="password" placeholder="Để trống nếu không đổi" />
-                        </div>
+
+                      <div className="form-group" style={{ display: 'flex', alignItems: 'center' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                          <input 
+                            type="checkbox" 
+                            checked={isChangingPassword} 
+                            onChange={(e) => setIsChangingPassword(e.target.checked)} 
+                            style={{ width: 'auto' }}
+                          />
+                          <span style={{ fontWeight: 500 }}>Đổi mật khẩu</span>
+                        </label>
                       </div>
+
+                      {isChangingPassword && (
+                        <>
+                          <div className="form-group animate-in fade-in slide-in-from-top-2">
+                            <label>Mật khẩu hiện tại</label>
+                            <div className="input-wrapper">
+                              <input type="password" placeholder="Nhập mật khẩu hiện tại" />
+                            </div>
+                          </div>
+                          <div className="form-group animate-in fade-in slide-in-from-top-2">
+                            <label>Mật khẩu mới</label>
+                            <div className="input-wrapper">
+                              <input type="password" placeholder="Nhập mật khẩu mới" />
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <button className="btn-submit" style={{ marginTop: 20, width: 'fit-content', padding: '12px 30px' }}>
+                    <button className="btn-submit btn-profile-submit">
                       Cập nhật thông tin
                     </button>
                   </div>
@@ -556,8 +600,8 @@ export default function Dashboard() {
                       <h2 className="card-title">Hỗ trợ khách hàng</h2>
                       <p className="card-subtitle">Gửi yêu cầu hỗ trợ nếu bạn gặp sự cố với tài khoản</p>
                     </div>
-                    <button 
-                      className="btn-primary" 
+                    <button
+                      className="btn-primary"
                       style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '10px 16px' }}
                       onClick={() => { setSelectedOrderId(null); setShowTicketModal(true); }}
                     >
@@ -644,7 +688,7 @@ export default function Dashboard() {
                 <div className="modal-body">
                   <div className="form-group">
                     <label>Chọn đơn hàng cần hỗ trợ <span style={{ color: '#ef4444' }}>*</span></label>
-                    <select 
+                    <select
                       className="ticket-select"
                       value={selectedOrderId || ''}
                       onChange={(e) => setSelectedOrderId(Number(e.target.value))}
@@ -661,8 +705,8 @@ export default function Dashboard() {
 
                   <div className="form-group" style={{ marginTop: 16 }}>
                     <label>Mô tả chi tiết lỗi <span style={{ color: '#ef4444' }}>*</span></label>
-                    <textarea 
-                      className="ticket-textarea" 
+                    <textarea
+                      className="ticket-textarea"
                       placeholder="Vui lòng mô tả vấn đề bạn đang gặp phải (VD: Tài khoản sai pass, Profile bị khóa...)"
                       value={ticketMessage}
                       onChange={(e) => setTicketMessage(e.target.value)}

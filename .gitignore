@@ -70,3 +70,4 @@ target/
 ### OS / Misc ###
 .DS_Store
 Thumbs.db
+test-results/
