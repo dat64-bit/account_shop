@@ -36,6 +36,9 @@ public class Account {
     @Column(name = "balance")
     private BigDecimal balance;
 
+    @Column(name = "balance_locked")
+    private Boolean balanceLocked = false;
+
     @Column(name = "token")
     private String token;
 

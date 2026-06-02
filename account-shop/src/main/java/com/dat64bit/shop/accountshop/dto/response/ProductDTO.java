@@ -14,4 +14,5 @@ public class ProductDTO {
     private Boolean isInputEmailRequired;
     private Integer productStatusId;
     private Boolean categoryActive;
+    private java.math.BigDecimal startingPrice;
 }

@@ -29,4 +29,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
 
     @Query("SELECT t FROM Transaction t WHERE t.transactionId IN :ids ORDER BY t.transactionId DESC")
     List<Transaction> findByTransactionIdInOrderByTransactionIdDesc(@Param("ids") List<Integer> ids);
+
+    boolean existsByDescription(String description);
 }

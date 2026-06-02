@@ -11,6 +11,7 @@ public class UserDTO {
     private String email;
     private String fullName;
     private BigDecimal balance;
+    private Boolean balanceLocked;
     private Integer accountStatusId;
     private String roleName;
     private LocalDateTime createdAt;

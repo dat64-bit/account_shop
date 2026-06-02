@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, Integer> {
-
+    java.util.Optional<PaymentMethod> findByMethodName(String methodName);
 }

@@ -319,4 +319,29 @@ public class AdminController {
             @RequestParam(defaultValue = "15") int limit) {
         return ResponseEntity.ok(adminService.getTransactionsPaged(statusId, accountId, keyword, lastId, limit));
     }
+
+    @PostMapping("/accounts/{accountId}/manual-credit")
+    public ResponseEntity<?> manualCredit(
+            @PathVariable Integer accountId,
+            @RequestParam java.math.BigDecimal amount,
+            @RequestParam(required = false) String note) {
+        try {
+            adminService.manualCreditBalance(accountId, amount, note);
+            return ResponseEntity.ok("Cộng tiền thành công.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/accounts/{accountId}/balance-lock")
+    public ResponseEntity<?> toggleBalanceLock(
+            @PathVariable Integer accountId,
+            @RequestParam boolean lock) {
+        try {
+            adminService.toggleBalanceLock(accountId, lock);
+            return ResponseEntity.ok(lock ? "Đã khóa số dư." : "Đã mở khóa số dư.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }
