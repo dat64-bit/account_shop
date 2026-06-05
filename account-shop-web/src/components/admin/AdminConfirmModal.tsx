@@ -1,7 +1,7 @@
 "use client";
 
 import React, { ReactNode } from "react";
-import Portal from "@/components/Portal";
+import Portal from "@/components/common/Portal";
 
 type ConfirmVariant = "danger" | "warning" | "info";
 

@@ -334,7 +334,7 @@ a {
   font-size: 11px;
   font-weight: 800;
   padding: 8px 14px;
-  border-radius: 99px;
+  border-radius: var(--radius);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   transition: all 0.2s;
@@ -702,18 +702,18 @@ a {
   background: white;
   color: var(--primary);
   padding: 10px 24px;
-  border-radius: 99px;
+  border-radius: var(--radius);
   font-weight: 700;
   font-size: 14px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s;
 }
 
 .btn-banner:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 /* Side Banners */
@@ -884,11 +884,11 @@ a {
 .auth-card {
   background: var(--bg-white);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 36px 40px;
   width: 100%;
   max-width: 420px;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .auth-social-btn {
