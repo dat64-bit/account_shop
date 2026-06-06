@@ -5,7 +5,7 @@ import Hero from '@/components/home/Hero';
 import ProductCard from '@/components/common/ProductCard';
 import Link from 'next/link';
 import { API_BASE_URL } from '@/lib/config';
-import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminToast } from '@/components/admin/AdminToast';
 
 interface Category { categoryId: number; categoryName: string; description: string; }
 interface Product { productId: number; productName: string; categoryName: string; imageUrl?: string; startingPrice?: number; }
@@ -22,7 +22,7 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast, showToast } = useAdminToast();
+  const { showToast } = useAdminToast();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -93,7 +93,6 @@ export default function Home() {
 
   return (
     <>
-      <AdminToast toast={toast} />
       <main style={{ background: 'var(--bg)', minHeight: '100vh', paddingBottom: 40 }}>
         <div className="container" style={{ paddingTop: 16 }}>
           {/* Breadcrumb */}

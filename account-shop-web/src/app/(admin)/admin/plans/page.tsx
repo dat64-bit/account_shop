@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import Portal from '@/components/common/Portal';
 import { AdminTableCard } from '@/components/admin/AdminTableCard';
-import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import AdminTable, { Column } from '@/components/admin/AdminTable';
 import { API_BASE_URL } from '@/lib/config';
 import api from '@/lib/axios';
+import { useKeysetPagination } from '@/hooks/useKeysetPagination';
 
 const Plus = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -21,14 +23,11 @@ export default function AdminPlans() {
 
   // Filters & Keyset Pagination States
   const [productIdFilter, setProductIdFilter] = useState<number | undefined>(undefined);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [cursors, setCursors] = useState<(number | null)[]>([null]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<any>(null);
   const [form, setForm] = useState({ productId: '', planId: '', price: 0, isActive: true });
-  const { toast, showToast } = useAdminToast();
+  const { showToast } = useAdminToast();
 
   // Load products & duration plans once
   const loadStaticData = async () => {
@@ -85,6 +84,20 @@ export default function AdminPlans() {
     }
   };
 
+  const {
+    currentPage,
+    setCurrentPage,
+    hasMore,
+    setHasMore,
+    cursors,
+    handlePrev,
+    handleNext,
+    resetPagination
+  } = useKeysetPagination(
+    (lastId, page) => fetchSubscriptions(lastId, page),
+    (plan: any) => plan.productSubscriptionId
+  );
+
   useEffect(() => {
     const init = async () => {
       setIsMounted(true);
@@ -97,31 +110,12 @@ export default function AdminPlans() {
   // Fetch when product filter changes
   useEffect(() => {
     if (isMounted) {
-      setCursors([null]);
+      resetPagination();
       fetchSubscriptions(null, 1);
     }
   }, [productIdFilter, isMounted]);
 
-  const handlePrev = () => {
-    if (currentPage > 1) {
-      const prevPage = currentPage - 1;
-      const prevLastId = cursors[prevPage - 1];
-      fetchSubscriptions(prevLastId, prevPage);
-    }
-  };
 
-  const handleNext = () => {
-    if (hasMore && plans.length > 0) {
-      const nextPage = currentPage + 1;
-      const currentLastId = plans[plans.length - 1].productSubscriptionId;
-      setCursors(prev => {
-        const nextCursors = [...prev];
-        nextCursors[nextPage - 1] = currentLastId;
-        return nextCursors;
-      });
-      fetchSubscriptions(currentLastId, nextPage);
-    }
-  };
 
   const handleToggleStatus = async (id: number, currentActive: boolean) => {
     try {
@@ -155,6 +149,38 @@ export default function AdminPlans() {
       showToast(`Lỗi: ${errorMsg}`, 'error');
     }
   };
+
+  const planColumns: Column[] = [
+    { title: 'ID', dataIndex: 'productSubscriptionId', render: (id: number) => `#${id}` },
+    { title: 'Sản phẩm', dataIndex: 'productName' },
+    { title: 'Tên gói', dataIndex: 'planName', render: (val: string) => <span className="admin-text-bold">{val}</span> },
+    { title: 'Giá bán', dataIndex: 'price', render: (val: number) => <span className="admin-text-price">{val?.toLocaleString()}đ</span> },
+    { title: 'Thời hạn (Ngày)', dataIndex: 'durationDays', render: (val: number) => `${val} ngày` },
+    {
+      title: 'Trạng thái', dataIndex: 'isActive', render: (isActive: boolean) => (
+        <span className={`admin-badge ${isActive ? 'success' : 'warning'}`}>
+          {isActive ? 'Đang bán' : 'Tạm dừng'}
+        </span>
+      )
+    },
+    {
+      title: 'Thao tác', dataIndex: 'actions', render: (_: any, plan: any) => (
+        <div className="admin-table-actions">
+          <button className="btn-admin-action edit" onClick={() => {
+            setEditingSub(plan);
+            setForm({ productId: plan.productId, planId: plan.planId, price: plan.price, isActive: plan.isActive });
+            setModalOpen(true);
+          }}>Sửa</button>
+          <button
+            className={`btn-admin-action ${plan.isActive ? 'lock' : 'edit'}`}
+            onClick={() => handleToggleStatus(plan.productSubscriptionId, plan.isActive)}
+          >
+            {plan.isActive ? 'Dừng' : 'Bán'}
+          </button>
+        </div>
+      )
+    }
+  ];
 
   if (!isMounted) return null;
 
@@ -196,63 +222,17 @@ export default function AdminPlans() {
             <div className="table-loading-cell">Đang tải danh sách gói đăng ký...</div>
           ) : (
             <>
-              <div className="table-responsive">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Sản phẩm</th>
-                      <th>Tên gói</th>
-                      <th>Giá bán</th>
-                      <th>Thời hạn (Ngày)</th>
-                      <th>Trạng thái</th>
-                      <th>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {plans.length === 0 ? (
-                      <tr>
-                        <td className="table-empty-cell" colSpan={7}>Không tìm thấy gói nào.</td>
-                      </tr>
-                    ) : (
-                      plans.map(plan => (
-                        <tr key={plan.productSubscriptionId}>
-                          <td>#{plan.productSubscriptionId}</td>
-                          <td>{plan.productName}</td>
-                          <td className="admin-text-bold">{plan.planName}</td>
-                          <td className="admin-text-price">{plan.price.toLocaleString()}đ</td>
-                          <td>{plan.durationDays} ngày</td>
-                          <td>
-                            <span className={`admin-badge ${plan.isActive ? 'success' : 'warning'}`}>
-                              {plan.isActive ? 'Đang bán' : 'Tạm dừng'}
-                            </span>
-                          </td>
-                          <td className="admin-actions-cell">
-                            <div className="admin-table-actions">
-                              <button className="btn-admin-action edit" onClick={() => {
-                                setEditingSub(plan);
-                                setForm({ productId: plan.productId, planId: plan.planId, price: plan.price, isActive: plan.isActive });
-                                setModalOpen(true);
-                              }}>Sửa</button>
-                              <button
-                                className={`btn-admin-action ${plan.isActive ? 'lock' : 'edit'}`}
-                                onClick={() => handleToggleStatus(plan.productSubscriptionId, plan.isActive)}
-                              >
-                                {plan.isActive ? 'Dừng' : 'Bán'}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <AdminTable 
+                columns={planColumns} 
+                data={plans} 
+                rowKey="productSubscriptionId" 
+                emptyText="Không tìm thấy gói nào." 
+              />
               <AdminPagination
                 currentPage={currentPage}
                 hasMore={hasMore}
                 onPrev={handlePrev}
-                onNext={handleNext}
+                onNext={() => handleNext(plans)}
               />
             </>
           )}
@@ -301,8 +281,6 @@ export default function AdminPlans() {
           </Portal>
         )}
       </div>
-
-      <AdminToast toast={toast} />
     </>
   );
 }

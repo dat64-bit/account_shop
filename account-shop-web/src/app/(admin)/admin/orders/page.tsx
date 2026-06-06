@@ -4,10 +4,13 @@ import { useState, useEffect } from 'react';
 import Portal from '@/components/common/Portal';
 import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
-import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import AdminTable, { Column } from '@/components/admin/AdminTable';
 import { API_BASE_URL } from '@/lib/config';
 import api from '@/lib/axios';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useKeysetPagination } from '@/hooks/useKeysetPagination';
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -29,19 +32,9 @@ export default function AdminOrders() {
   // Filters & Keyset Pagination States
   const [statusFilter, setStatusFilter] = useState<number | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
-  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const debouncedKeyword = useDebounce(keyword, 1000);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedKeyword(keyword);
-    }, 1000);
-    return () => clearTimeout(handler);
-  }, [keyword]);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [cursors, setCursors] = useState<(number | null)[]>([null]);
-  const { toast, showToast } = useAdminToast();
+  const { showToast } = useAdminToast();
 
   const handleOpenReplacements = async (order: any) => {
     setSelectedOrder(order);
@@ -57,6 +50,37 @@ export default function AdminOrders() {
       setReplacementsLoading(false);
     }
   };
+
+  const fetchData = async (lastId: number | null, page: number) => {
+    setLoading(true);
+    try {
+      let url = `/admin/orders?limit=15`;
+      if (lastId !== null) url += `&lastId=${lastId}`;
+      if (statusFilter !== undefined) url += `&statusId=${statusFilter}`;
+      if (debouncedKeyword.trim()) url += `&keyword=${encodeURIComponent(debouncedKeyword.trim())}`;
+
+      const res = await api.get(url);
+      setOrders(res.data.content || []);
+      setHasMore(res.data.hasMore || false);
+      setCurrentPage(page);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      showToast('Lỗi kết nối máy chủ hoặc tải đơn hàng.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const {
+    currentPage,
+    setCurrentPage,
+    hasMore,
+    setHasMore,
+    cursors,
+    handlePrev,
+    handleNext,
+    resetPagination
+  } = useKeysetPagination(fetchData, (order: any) => order.orderId);
 
   const handleConfirmReplace = async (rep: any) => {
     if (!selectedOrder) return;
@@ -102,26 +126,6 @@ export default function AdminOrders() {
     }
   };
 
-  const fetchData = async (lastId: number | null, page: number) => {
-    setLoading(true);
-    try {
-      let url = `/admin/orders?limit=15`;
-      if (lastId !== null) url += `&lastId=${lastId}`;
-      if (statusFilter !== undefined) url += `&statusId=${statusFilter}`;
-      if (debouncedKeyword.trim()) url += `&keyword=${encodeURIComponent(debouncedKeyword.trim())}`;
-
-      const res = await api.get(url);
-      setOrders(res.data.content || []);
-      setHasMore(res.data.hasMore || false);
-      setCurrentPage(page);
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-      showToast('Lỗi kết nối máy chủ hoặc tải đơn hàng.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -129,31 +133,54 @@ export default function AdminOrders() {
   // Fetch data when filters change
   useEffect(() => {
     if (isMounted) {
-      setCursors([null]);
+      resetPagination();
       fetchData(null, 1);
     }
   }, [statusFilter, debouncedKeyword, isMounted]);
 
-  const handlePrev = () => {
-    if (currentPage > 1) {
-      const prevPage = currentPage - 1;
-      const prevLastId = cursors[prevPage - 1];
-      fetchData(prevLastId, prevPage);
+  const orderColumns: Column[] = [
+    { title: 'Mã đơn', dataIndex: 'orderId', render: (id: number) => `#${id}` },
+    {
+      title: 'Khách hàng', dataIndex: 'username', render: (_: any, order: any) => (
+        <div className="admin-cell-stacked">
+          <span className="admin-text-bold">{order.username || 'Không xác định'}</span>
+          {order.fullName && <span className="admin-text-muted">{order.fullName}</span>}
+        </div>
+      )
+    },
+    { title: 'Sản phẩm', dataIndex: 'productName', render: (val: string) => <span className="admin-text-bold">{val || 'N/A'}</span> },
+    {
+      title: 'Thông tin tài khoản', dataIndex: 'accountInfo', render: (val: string) => (
+        <div className="table-truncate-cell" title={val}>
+          {val || <span className="text-slate-400 italic">Chưa giao hàng</span>}
+        </div>
+      )
+    },
+    { title: 'Tổng tiền', dataIndex: 'totalAmount', render: (val: number) => <span className="admin-text-price">{val?.toLocaleString()}đ</span> },
+    {
+      title: 'Trạng thái', dataIndex: 'orderStatus', render: (status: string) => (
+        <span className={`admin-badge ${status === 'COMPLETED' ? 'success' :
+          status === 'REFUNDED' ? 'secondary' :
+            status === 'FAILED' ? 'danger' :
+              status === 'REPLACED' ? 'info' : 'warning'
+          }`}>
+          {status === 'COMPLETED' ? 'Hoàn tất' :
+            status === 'REFUNDED' ? 'Đã hoàn tiền' :
+              status === 'FAILED' ? 'Báo lỗi' :
+                status === 'REPLACED' ? 'Đã đổi tài khoản' : 'Chờ xử lý'}
+        </span>
+      )
+    },
+    { title: 'Ngày mua', dataIndex: 'createdAt', render: (date: string) => new Date(date).toLocaleString() },
+    {
+      title: 'Thao tác', dataIndex: 'actions', render: (_: any, order: any) => (
+        <div className="admin-table-actions">
+          <button className="btn-admin-action edit" onClick={() => handleOpenReplacements(order)}>Đổi tài khoản</button>
+          <button className="btn-admin-action delete" onClick={() => handleOpenRefund(order)}>Hoàn tiền</button>
+        </div>
+      )
     }
-  };
-
-  const handleNext = () => {
-    if (hasMore && orders.length > 0) {
-      const nextPage = currentPage + 1;
-      const currentLastId = orders[orders.length - 1].orderId;
-      setCursors(prev => {
-        const nextCursors = [...prev];
-        nextCursors[nextPage - 1] = currentLastId;
-        return nextCursors;
-      });
-      fetchData(currentLastId, nextPage);
-    }
-  };
+  ];
 
   if (!isMounted) return null;
 
@@ -194,82 +221,17 @@ export default function AdminOrders() {
           <div className="table-loading-cell">Đang tải danh sách đơn hàng...</div>
         ) : (
           <>
-            <div className="table-responsive">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Mã đơn</th>
-                    <th>Khách hàng</th>
-                    <th>Sản phẩm</th>
-                    <th>Thông tin tài khoản</th>
-                    <th>Tổng tiền</th>
-                    <th>Trạng thái</th>
-                    <th>Ngày mua</th>
-                    <th>Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.length === 0 ? (
-                    <tr>
-                      <td className="table-empty-cell" colSpan={8}>Không tìm thấy đơn hàng nào.</td>
-                    </tr>
-                  ) : (
-                    orders.map(order => (
-                      <tr key={order.orderId}>
-                        <td>#{order.orderId}</td>
-                        <td>
-                          <div className="admin-cell-stacked">
-                            <span className="admin-text-bold">{order.username || 'Không xác định'}</span>
-                            {order.fullName && <span className="admin-text-muted">{order.fullName}</span>}
-                          </div>
-                        </td>
-                        <td className="admin-text-bold">{order.productName || 'N/A'}</td>
-                        <td className="table-truncate-cell" title={order.accountInfo}>
-                          {order.accountInfo || <span className="text-slate-400 italic">Chưa giao hàng</span>}
-                        </td>
-                        <td className="admin-text-price">{order.totalAmount.toLocaleString()}đ</td>
-                        <td>
-                          <span className={`admin-badge ${order.orderStatus === 'COMPLETED' ? 'success' :
-                            order.orderStatus === 'REFUNDED' ? 'secondary' :
-                              order.orderStatus === 'FAILED' ? 'danger' :
-                                order.orderStatus === 'REPLACED' ? 'info' : 'warning'
-                            }`}>
-                            {order.orderStatus === 'COMPLETED' ? 'Hoàn tất' :
-                              order.orderStatus === 'REFUNDED' ? 'Đã hoàn tiền' :
-                                order.orderStatus === 'FAILED' ? 'Báo lỗi' :
-                                  order.orderStatus === 'REPLACED' ? 'Đã đổi tài khoản' : 'Chờ xử lý'}
-                          </span>
-                        </td>
-                        <td>{new Date(order.createdAt).toLocaleString()}</td>
-                        <td className="admin-actions-cell">
-                          <div className="admin-table-actions">
-                            <>
-                              <button
-                                className="btn-admin-action edit"
-                                onClick={() => handleOpenReplacements(order)}
-                              >
-                                Đổi tài khoản
-                              </button>
-                              <button
-                                className="btn-admin-action delete"
-                                onClick={() => handleOpenRefund(order)}
-                              >
-                                Hoàn tiền
-                              </button>
-                            </>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <AdminTable 
+              columns={orderColumns} 
+              data={orders} 
+              rowKey="orderId" 
+              emptyText="Không tìm thấy đơn hàng nào." 
+            />
             <AdminPagination
               currentPage={currentPage}
               hasMore={hasMore}
               onPrev={handlePrev}
-              onNext={handleNext}
+              onNext={() => handleNext(orders)}
             />
           </>
         )}
@@ -371,8 +333,6 @@ export default function AdminOrders() {
         onConfirm={executeRefund}
         onCancel={() => setRefundConfirmOpen(false)}
       />
-
-      <AdminToast toast={toast} />
     </div>
   );
 }

@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { AdminTableCard } from '@/components/admin/AdminTableCard';
-import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import AdminTable, { Column } from '@/components/admin/AdminTable';
 import api from '@/lib/axios';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useKeysetPagination } from '@/hooks/useKeysetPagination';
 
 export default function AdminTickets() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -13,23 +16,12 @@ export default function AdminTickets() {
   const [adminReply, setAdminReply] = useState('');
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
-  const { toast, showToast } = useAdminToast();
+  const { showToast } = useAdminToast();
 
   // Filters & Keyset Pagination States
   const [statusFilter, setStatusFilter] = useState<number | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
-  const [debouncedKeyword, setDebouncedKeyword] = useState('');
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedKeyword(keyword);
-    }, 1000);
-    return () => clearTimeout(handler);
-  }, [keyword]);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [cursors, setCursors] = useState<(number | null)[]>([null]);
+  const debouncedKeyword = useDebounce(keyword, 1000);
 
   const fetchTickets = async (lastId: number | null, page: number) => {
     setLoading(true);
@@ -54,6 +46,17 @@ export default function AdminTickets() {
       setLoading(false);
     }
   };
+
+  const {
+    currentPage,
+    setCurrentPage,
+    hasMore,
+    setHasMore,
+    cursors,
+    handlePrev,
+    handleNext,
+    resetPagination
+  } = useKeysetPagination(fetchTickets, (ticket: any) => ticket.ticketId);
 
   const fetchTicketReplies = async (ticketId: number) => {
     try {
@@ -102,31 +105,33 @@ export default function AdminTickets() {
   // Fetch data when filters change
   useEffect(() => {
     if (isMounted) {
-      setCursors([null]);
+      resetPagination();
       fetchTickets(null, 1);
     }
   }, [statusFilter, debouncedKeyword, isMounted]);
 
-  const handlePrev = () => {
-    if (currentPage > 1) {
-      const prevPage = currentPage - 1;
-      const prevLastId = cursors[prevPage - 1];
-      fetchTickets(prevLastId, prevPage);
-    }
-  };
 
-  const handleNext = () => {
-    if (hasMore && tickets.length > 0) {
-      const nextPage = currentPage + 1;
-      const currentLastId = tickets[tickets.length - 1].ticketId;
-      setCursors(prev => {
-        const nextCursors = [...prev];
-        nextCursors[nextPage - 1] = currentLastId;
-        return nextCursors;
-      });
-      fetchTickets(currentLastId, nextPage);
+
+  const ticketColumns: Column[] = [
+    { title: 'Mã', dataIndex: 'ticketId', render: (id: number) => `#${id}` },
+    { title: 'Người dùng', dataIndex: 'username', render: (val: string) => val || 'Khách' },
+    { title: 'Chủ đề', dataIndex: 'issueType', render: (val: string) => <strong>{val}</strong> },
+    {
+      title: 'Trạng thái', dataIndex: 'ticketStatusId', render: (statusId: number) => (
+        <span className={`admin-badge ${statusId === 1 ? 'danger' : statusId === 2 ? 'success' : 'warning'}`}>
+          {statusId === 1 ? 'Chờ xử lý' : statusId === 2 ? 'Đã xong' : 'Đang xử lý'}
+        </span>
+      )
+    },
+    { title: 'Ngày tạo', dataIndex: 'createdAt', render: (date: string) => new Date(date).toLocaleDateString() },
+    {
+      title: 'Thao tác', dataIndex: 'actions', render: (_: any, t: any) => (
+        <div className="admin-table-actions">
+          <button className="btn-admin-action edit" onClick={() => handleOpenTicket(t)}>Xử lý ngay</button>
+        </div>
+      )
     }
-  };
+  ];
 
   if (!isMounted) return null;
 
@@ -166,51 +171,17 @@ export default function AdminTickets() {
             <div className="table-loading-cell">Đang tải danh sách ticket...</div>
           ) : (
             <>
-              <div className="table-responsive">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Mã</th>
-                      <th>Người dùng</th>
-                      <th>Chủ đề</th>
-                      <th>Trạng thái</th>
-                      <th>Ngày tạo</th>
-                      <th>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tickets.length === 0 ? (
-                      <tr>
-                        <td className="table-empty-cell" colSpan={6}>Không tìm thấy ticket nào.</td>
-                      </tr>
-                    ) : (
-                      tickets.map(t => (
-                        <tr key={t.ticketId}>
-                          <td>#{t.ticketId}</td>
-                          <td>{t.username || 'Khách'}</td>
-                          <td><strong>{t.issueType}</strong></td>
-                          <td>
-                            <span className={`admin-badge ${t.ticketStatusId === 1 ? 'danger' : t.ticketStatusId === 2 ? 'success' : 'warning'}`}>
-                              {t.ticketStatusId === 1 ? 'Chờ xử lý' : t.ticketStatusId === 2 ? 'Đã xong' : 'Đang xử lý'}
-                            </span>
-                          </td>
-                          <td>{new Date(t.createdAt).toLocaleDateString()}</td>
-                          <td className="admin-actions-cell">
-                            <div className="admin-table-actions">
-                              <button className="btn-admin-action edit" onClick={() => handleOpenTicket(t)}>Xử lý ngay</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <AdminTable 
+                columns={ticketColumns} 
+                data={tickets} 
+                rowKey="ticketId" 
+                emptyText="Không tìm thấy ticket nào." 
+              />
               <AdminPagination
                 currentPage={currentPage}
                 hasMore={hasMore}
                 onPrev={handlePrev}
-                onNext={handleNext}
+                onNext={() => handleNext(tickets)}
               />
             </>
           )}
@@ -258,8 +229,6 @@ export default function AdminTickets() {
           </div>
         )}
       </div>
-
-      <AdminToast toast={toast} />
     </>
   );
 }

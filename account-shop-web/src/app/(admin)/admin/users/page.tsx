@@ -3,34 +3,26 @@
 import { useState, useEffect } from 'react';
 import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
-import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import AdminTable, { Column } from '@/components/admin/AdminTable';
 import { API_BASE_URL } from '@/lib/config';
 import api from '@/lib/axios';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useKeysetPagination } from '@/hooks/useKeysetPagination';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
-  const { toast, showToast } = useAdminToast();
+  const { showToast } = useAdminToast();
   const [pendingUser, setPendingUser] = useState<any>(null);
 
   // Filters & Keyset Pagination
   const [statusIdFilter, setStatusIdFilter] = useState<number | undefined>(undefined);
   const [roleIdFilter, setRoleIdFilter] = useState<number | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
-  const [debouncedKeyword, setDebouncedKeyword] = useState('');
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedKeyword(keyword);
-    }, 1000);
-    return () => clearTimeout(handler);
-  }, [keyword]);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [cursors, setCursors] = useState<(number | null)[]>([null]);
+  const debouncedKeyword = useDebounce(keyword, 1000);
 
   const fetchUsers = async (lastId: number | null, page: number) => {
     setLoading(true);
@@ -57,6 +49,17 @@ export default function AdminUsers() {
     }
   };
 
+  const {
+    currentPage,
+    setCurrentPage,
+    hasMore,
+    setHasMore,
+    cursors,
+    handlePrev,
+    handleNext,
+    resetPagination
+  } = useKeysetPagination(fetchUsers, (user: any) => user.accountId);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -64,31 +67,10 @@ export default function AdminUsers() {
   // Fetch when filters change
   useEffect(() => {
     if (isMounted) {
-      setCursors([null]);
+      resetPagination();
       fetchUsers(null, 1);
     }
   }, [statusIdFilter, roleIdFilter, debouncedKeyword, isMounted]);
-
-  const handlePrev = () => {
-    if (currentPage > 1) {
-      const prevPage = currentPage - 1;
-      const prevLastId = cursors[prevPage - 1];
-      fetchUsers(prevLastId, prevPage);
-    }
-  };
-
-  const handleNext = () => {
-    if (hasMore && users.length > 0) {
-      const nextPage = currentPage + 1;
-      const currentLastId = users[users.length - 1].accountId;
-      setCursors(prev => {
-        const nextCursors = [...prev];
-        nextCursors[nextPage - 1] = currentLastId;
-        return nextCursors;
-      });
-      fetchUsers(currentLastId, nextPage);
-    }
-  };
 
   const handleToggleUserStatus = (user: any) => {
     setPendingUser(user);
@@ -118,6 +100,37 @@ export default function AdminUsers() {
       setPendingUser(null);
     }
   };
+
+  const userColumns: Column[] = [
+    { title: 'ID', dataIndex: 'accountId', render: (id: number) => `#${id}` },
+    { title: 'Tên đăng nhập', dataIndex: 'username', render: (val: string) => <span className="admin-text-bold">{val}</span> },
+    { title: 'Vai trò', dataIndex: 'roleName' },
+    { title: 'Họ tên', dataIndex: 'fullName' },
+    { title: 'Số dư', dataIndex: 'balance', render: (val: number) => <span className="admin-text-price">{val?.toLocaleString()}đ</span> },
+    {
+      title: 'Trạng thái', dataIndex: 'accountStatusId', render: (statusId: number) => (
+        <span className={`admin-badge ${statusId === 1 ? 'success' : 'danger'}`}>
+          {statusId === 1 ? 'Hoạt động' : 'Đã khóa'}
+        </span>
+      )
+    },
+    {
+      title: 'Thao tác', dataIndex: 'actions', render: (_: any, user: any) => (
+        <div className="admin-table-actions">
+          {user.roleName?.toUpperCase() === 'ROLE_ADMIN' || user.roleName?.toUpperCase() === 'ADMIN' ? (
+            <span className="text-sm text-slate-400 font-medium italic px-2">Quản trị viên</span>
+          ) : (
+            <button
+              className={`btn-admin-action ${user.accountStatusId === 1 ? 'lock' : 'edit'}`}
+              onClick={() => handleToggleUserStatus(user)}
+            >
+              {user.accountStatusId === 1 ? 'Khóa' : 'Mở'}
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
 
   if (!isMounted) return null;
 
@@ -169,60 +182,17 @@ export default function AdminUsers() {
           <div className="table-loading-cell">Đang tải danh sách người dùng...</div>
         ) : (
           <>
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Tên đăng nhập</th>
-                  <th>Vai trò</th>
-                  <th>Họ tên</th>
-                  <th>Số dư</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.length === 0 ? (
-                  <tr>
-                    <td className="table-empty-cell" colSpan={7}>Không tìm thấy người dùng nào.</td>
-                  </tr>
-                ) : (
-                  users.map(user => (
-                    <tr key={user.accountId}>
-                      <td>#{user.accountId}</td>
-                      <td className="admin-text-bold">{user.username}</td>
-                      <td>{user.roleName}</td>
-                      <td>{user.fullName}</td>
-                      <td className="admin-text-price">{user.balance?.toLocaleString()}đ</td>
-                      <td>
-                        <span className={`admin-badge ${user.accountStatusId === 1 ? 'success' : 'danger'}`}>
-                          {user.accountStatusId === 1 ? 'Hoạt động' : 'Đã khóa'}
-                        </span>
-                      </td>
-                      <td className="admin-actions-cell">
-                        <div className="admin-table-actions">
-                          {user.roleName?.toUpperCase() === 'ROLE_ADMIN' || user.roleName?.toUpperCase() === 'ADMIN' ? (
-                            <span className="text-sm text-slate-400 font-medium italic px-2">Quản trị viên</span>
-                          ) : (
-                            <button
-                              className={`btn-admin-action ${user.accountStatusId === 1 ? 'lock' : 'edit'}`}
-                              onClick={() => handleToggleUserStatus(user)}
-                            >
-                              {user.accountStatusId === 1 ? 'Khóa' : 'Mở'}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <AdminTable 
+              columns={userColumns} 
+              data={users} 
+              rowKey="accountId" 
+              emptyText="Không tìm thấy người dùng nào." 
+            />
             <AdminPagination
               currentPage={currentPage}
               hasMore={hasMore}
               onPrev={handlePrev}
-              onNext={handleNext}
+              onNext={() => handleNext(users)}
             />
           </>
         )}
@@ -241,8 +211,6 @@ export default function AdminUsers() {
         onConfirm={executeToggleStatus}
         onCancel={() => setPendingUser(null)}
       />
-
-      <AdminToast toast={toast} />
     </>
   );
 }

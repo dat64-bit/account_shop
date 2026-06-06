@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Portal from '@/components/common/Portal';
 import { useCart } from '@/context/CartContext';
 import { API_BASE_URL } from '@/lib/config';
-import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminToast } from '@/components/admin/AdminToast';
 
 interface Product {
   productId: number;
@@ -53,7 +53,7 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('desc');
   const [contactModalOpen, setContactModalOpen] = useState(false);
-  const { toast, showToast } = useAdminToast();
+  const { showToast } = useAdminToast();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -97,7 +97,6 @@ export default function ProductDetail() {
 
   return (
     <>
-      <AdminToast toast={toast} />
       <main className="product-detail-page">
         <div className="container">
           {/* Breadcrumb */}

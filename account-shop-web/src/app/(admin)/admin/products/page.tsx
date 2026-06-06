@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Portal from '@/components/common/Portal';
+import { useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import AdminTable, { Column } from '@/components/admin/AdminTable';
 import api from '@/lib/axios';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useKeysetPagination } from '@/hooks/useKeysetPagination';
 
 
 const Plus = () => (
@@ -28,18 +32,7 @@ export default function AdminProducts() {
   const [categoryIdFilter, setCategoryIdFilter] = useState<number | undefined>(undefined);
   const [statusIdFilter, setStatusIdFilter] = useState<number | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
-  const [debouncedKeyword, setDebouncedKeyword] = useState('');
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedKeyword(keyword);
-    }, 1000);
-    return () => clearTimeout(handler);
-  }, [keyword]);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [cursors, setCursors] = useState<(number | null)[]>([null]);
+  const debouncedKeyword = useDebounce(keyword, 1000);
 
   // View State
   const [view, setView] = useState<'list' | 'details' | 'form'>('list');
@@ -77,12 +70,7 @@ export default function AdminProducts() {
   const [pendingStatusId, setPendingStatusId] = useState<number | null>(null);
 
   // Notifications
-  const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-
-  const showToast = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const { showToast } = useAdminToast();
 
   const fetchMetadata = async () => {
     try {
@@ -116,6 +104,17 @@ export default function AdminProducts() {
     }
   };
 
+  const {
+    currentPage,
+    setCurrentPage,
+    hasMore,
+    setHasMore,
+    cursors,
+    handlePrev,
+    handleNext,
+    resetPagination
+  } = useKeysetPagination(fetchProducts, (product: any) => product.productId);
+
   useEffect(() => {
     setIsMounted(true);
     fetchMetadata();
@@ -123,31 +122,10 @@ export default function AdminProducts() {
 
   useEffect(() => {
     if (isMounted) {
-      setCursors([null]);
+      resetPagination();
       fetchProducts(null, 1);
     }
   }, [categoryIdFilter, statusIdFilter, debouncedKeyword, isMounted]);
-
-  const handlePrev = () => {
-    if (currentPage > 1) {
-      const prevPage = currentPage - 1;
-      const prevLastId = cursors[prevPage - 1];
-      fetchProducts(prevLastId, prevPage);
-    }
-  };
-
-  const handleNext = () => {
-    if (hasMore && products.length > 0) {
-      const nextPage = currentPage + 1;
-      const currentLastId = products[products.length - 1].productId;
-      setCursors(prev => {
-        const nextCursors = [...prev];
-        nextCursors[nextPage - 1] = currentLastId;
-        return nextCursors;
-      });
-      fetchProducts(currentLastId, nextPage);
-    }
-  };
 
   const fetchProductPlans = async (productId: number) => {
     try {
@@ -169,6 +147,38 @@ export default function AdminProducts() {
     }
   };
 
+
+  const productColumns: Column[] = [
+    { title: 'ID', dataIndex: 'productId', render: (id: number) => `#${id}` },
+    {
+      title: 'Hình ảnh', dataIndex: 'imageUrl', render: (url: string, p: any) => url ? (
+        <img src={url} alt={p.productName} className="product-thumb" />
+      ) : (
+        <div className="product-thumb-placeholder"><Plus /></div>
+      )
+    },
+    { title: 'Tên sản phẩm', dataIndex: 'productName', render: (val: string) => <span className="admin-text-bold">{val}</span> },
+    {
+      title: 'Trạng thái', dataIndex: 'productStatusId', render: (statusId: number) => (
+        <span className={`admin-badge ${statusId === 1 ? 'success' : 'danger'}`}>
+          {statusId === 1 ? 'Kinh doanh' : 'Tạm dừng'}
+        </span>
+      )
+    },
+    {
+      title: 'Thao tác', dataIndex: 'actions', render: (_: any, p: any) => (
+        <div className="admin-table-actions">
+          <button className="btn-admin-action view" onClick={() => handleOpenDetails(p)}>Chi tiết</button>
+          <button
+            className={`btn-admin-action ${p.productStatusId === 1 ? 'lock' : 'edit'}`}
+            onClick={() => handleToggleProductStatus(p.productId, p.productStatusId)}
+          >
+            {p.productStatusId === 1 ? 'Dừng' : 'Bán lại'}
+          </button>
+        </div>
+      )
+    }
+  ];
 
   const handleOpenDetails = (product: any) => {
     setSelectedProduct(product);
@@ -234,7 +244,7 @@ export default function AdminProducts() {
 
   const uploadImageFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      showToast('error', 'Chỉ chấp nhận các file định dạng hình ảnh!');
+      showToast('Chỉ chấp nhận các file định dạng hình ảnh!', 'error');
       return;
     }
 
@@ -247,10 +257,10 @@ export default function AdminProducts() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setProductForm(prev => ({ ...prev, imageUrl: res.data.url }));
-      showToast('success', 'Đăng tải hình ảnh thành công!');
+      showToast('Đăng tải hình ảnh thành công!', 'success');
     } catch (err: any) {
       console.error("Error uploading image:", err);
-      showToast('error', err.response?.data || 'Có lỗi xảy ra khi tải ảnh lên.');
+      showToast(err.response?.data || 'Có lỗi xảy ra khi tải ảnh lên.', 'error');
     } finally {
       setUploading(false);
     }
@@ -275,12 +285,12 @@ export default function AdminProducts() {
 
     try {
       await api[method](url, productForm);
-      showToast('success', editingProduct ? 'Đã cập nhật sản phẩm thành công!' : 'Đã tạo sản phẩm mới thành công!');
+      showToast(editingProduct ? 'Đã cập nhật sản phẩm thành công!' : 'Đã tạo sản phẩm mới thành công!', 'success');
       fetchProducts(cursors[currentPage - 1], currentPage);
       setView('list');
     } catch (error) {
       console.error("Error saving product:", error);
-      showToast('error', 'Có lỗi xảy ra khi lưu sản phẩm.');
+      showToast('Có lỗi xảy ra khi lưu sản phẩm.', 'error');
     }
   };
 
@@ -296,12 +306,12 @@ export default function AdminProducts() {
 
     try {
       await api.post('/admin/product-subscriptions', body);
-      showToast('success', editingPlan ? 'Đã cập nhật giá bán thành công!' : 'Đã thêm mức giá mới thành công!');
+      showToast(editingPlan ? 'Đã cập nhật giá bán thành công!' : 'Đã thêm mức giá mới thành công!', 'success');
       fetchProductPlans(selectedProduct.productId);
       setPlanModalOpen(false);
     } catch (err) {
       console.error(err);
-      showToast('error', 'Có lỗi xảy ra khi lưu bảng giá.');
+      showToast('Có lỗi xảy ra khi lưu bảng giá.', 'error');
     }
   };
 
@@ -371,64 +381,18 @@ export default function AdminProducts() {
             </div>
           </div>
 
-          <div className="table-responsive">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Hình ảnh</th>
-                  <th>Tên sản phẩm</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.length === 0 ? (
-                  <tr>
-                    <td className="table-empty-cell" colSpan={5}>Không tìm thấy sản phẩm nào.</td>
-                  </tr>
-                ) : (
-                  products.map(p => (
-                    <tr key={p.productId}>
-                      <td>#{p.productId}</td>
-                      <td>
-                        {p.imageUrl ? (
-                          <img src={p.imageUrl} alt={p.productName} className="product-thumb" />
-                        ) : (
-                          <div className="product-thumb-placeholder">
-                            <Plus />
-                          </div>
-                        )}
-                      </td>
-                      <td className="admin-text-bold">{p.productName}</td>
-                      <td>
-                        <span className={`admin-badge ${p.productStatusId === 1 ? 'success' : 'danger'}`}>
-                          {p.productStatusId === 1 ? 'Kinh doanh' : 'Tạm dừng'}
-                        </span>
-                      </td>
-                      <td className="admin-actions-cell">
-                        <div className="admin-table-actions">
-                          <button className="btn-admin-action view" onClick={() => handleOpenDetails(p)}>Chi tiết</button>
-                          <button
-                            className={`btn-admin-action ${p.productStatusId === 1 ? 'lock' : 'edit'}`}
-                            onClick={() => handleToggleProductStatus(p.productId, p.productStatusId)}
-                          >
-                            {p.productStatusId === 1 ? 'Dừng' : 'Bán lại'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          <AdminPagination
-            currentPage={currentPage}
-            hasMore={hasMore}
-            onPrev={handlePrev}
-            onNext={handleNext}
+          <AdminTable 
+            columns={productColumns} 
+            data={products} 
+            rowKey="productId" 
+            emptyText="Không tìm thấy sản phẩm nào." 
           />
+            <AdminPagination
+              currentPage={currentPage}
+              hasMore={hasMore}
+              onPrev={handlePrev}
+              onNext={() => handleNext(products)}
+            />
         </div>
       )}
 
@@ -707,7 +671,7 @@ export default function AdminProducts() {
                   onClick={() => {
                     setProductForm({ ...productForm, productStatusId: pendingStatusId! });
                     setStatusConfirmOpen(false);
-                    showToast('success', 'Đã thay đổi trạng thái niêm yết.');
+                    showToast('Đã thay đổi trạng thái niêm yết.', 'success');
                   }}
                 >
                   Xác nhận thay đổi
@@ -716,25 +680,6 @@ export default function AdminProducts() {
             </div>
           </div>
         </Portal>
-      )}
-
-      {/* Toast Notification */}
-      {toast && (
-        <div className="admin-toast-container animate-in slide-in-from-right duration-300">
-          <div className={`admin-toast toast-${toast.type}`}>
-            <div className="toast-icon">
-              {toast.type === 'success' ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              )}
-            </div>
-            <div className="toast-content">
-              <h5>{toast.type === 'success' ? 'Thành công' : 'Thất bại'}</h5>
-              <p>{toast.message}</p>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* 3. VIEW: DETAILS & PLANS */}

@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { AdminTableCard } from '@/components/admin/AdminTableCard';
-import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminToast } from '@/components/admin/AdminToast';
 import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import AdminTable, { Column } from '@/components/admin/AdminTable';
 import Portal from '@/components/common/Portal';
 import { API_BASE_URL } from '@/lib/config';
 import api from '@/lib/axios';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useKeysetPagination } from '@/hooks/useKeysetPagination';
 
 const Plus = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -19,7 +22,7 @@ export default function AdminInventory() {
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
-  const { toast, showToast } = useAdminToast();
+  const { showToast } = useAdminToast();
   
   // Slots State (Merged with Import Modal)
   const [slots, setSlots] = useState<any[]>([]);
@@ -58,18 +61,7 @@ export default function AdminInventory() {
   const [productIdFilter, setProductIdFilter] = useState<number | undefined>(undefined);
   const [itemStatusIdFilter, setItemStatusIdFilter] = useState<number | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
-  const [debouncedKeyword, setDebouncedKeyword] = useState('');
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedKeyword(keyword);
-    }, 1000);
-    return () => clearTimeout(handler);
-  }, [keyword]);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [cursors, setCursors] = useState<(number | null)[]>([null]);
+  const debouncedKeyword = useDebounce(keyword, 1000);
 
   const fetchProductsList = async () => {
     try {
@@ -104,6 +96,17 @@ export default function AdminInventory() {
       setLoading(false);
     }
   };
+
+  const {
+    currentPage,
+    setCurrentPage,
+    hasMore,
+    setHasMore,
+    cursors,
+    handlePrev,
+    handleNext,
+    resetPagination
+  } = useKeysetPagination(fetchInventory, (item: any) => item.accountItemId);
 
   const executeDeleteInventory = async () => {
     if (pendingDeleteId === null) return;
@@ -241,31 +244,10 @@ export default function AdminInventory() {
   // Fetch when filters change
   useEffect(() => {
     if (isMounted) {
-      setCursors([null]);
+      resetPagination();
       fetchInventory(null, 1);
     }
   }, [productIdFilter, itemStatusIdFilter, debouncedKeyword, isMounted]);
-
-  const handlePrev = () => {
-    if (currentPage > 1) {
-      const prevPage = currentPage - 1;
-      const prevLastId = cursors[prevPage - 1];
-      fetchInventory(prevLastId, prevPage);
-    }
-  };
-
-  const handleNext = () => {
-    if (hasMore && inventory.length > 0) {
-      const nextPage = currentPage + 1;
-      const currentLastId = inventory[inventory.length - 1].accountItemId;
-      setCursors(prev => {
-        const nextCursors = [...prev];
-        nextCursors[nextPage - 1] = currentLastId;
-        return nextCursors;
-      });
-      fetchInventory(currentLastId, nextPage);
-    }
-  };
 
   const handleImportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -309,6 +291,38 @@ export default function AdminInventory() {
       setSubmitting(false);
     }
   };
+
+  const inventoryColumns: Column[] = [
+    { title: 'ID', dataIndex: 'accountItemId', render: (id: number) => `#${id}` },
+    { title: 'Sản phẩm', dataIndex: 'productName', render: (val: string) => <span className="admin-text-bold">{val}</span> },
+    { title: 'Email/Username', dataIndex: 'accountEmail' },
+    { title: 'Mật khẩu', dataIndex: 'accountPassword', render: (val: string) => <code>{val}</code> },
+    {
+      title: 'Slot (Đã bán / Trống)', dataIndex: 'totalSlots', render: (val: any, item: any) => (
+        item.totalSlots !== null && item.totalSlots !== undefined ? (
+          <span>{item.soldSlots} / {item.freeSlots} (Tổng: {item.totalSlots})</span>
+        ) : (
+          <span className="admin-text-muted">N/A</span>
+        )
+      )
+    },
+    {
+      title: 'Trạng thái', dataIndex: 'statusName', render: (val: string, item: any) => (
+        <span className={`admin-badge ${item.itemStatusId === 1 ? 'success' : item.itemStatusId === 2 ? 'warning' : 'info'}`}>
+          {val}
+        </span>
+      )
+    },
+    { title: 'Ngày nhập', dataIndex: 'createdAt', render: (date: string) => new Date(date).toLocaleDateString() },
+    {
+      title: 'Thao tác', dataIndex: 'actions', render: (_: any, item: any) => (
+        <div className="admin-table-actions">
+          <button className="btn-admin-action edit" onClick={() => handleOpenSlotsModal(item)}>Sửa</button>
+          <button className="btn-admin-action delete" onClick={() => setPendingDeleteId(item.accountItemId)}>Xóa</button>
+        </div>
+      )
+    }
+  ];
 
   if (!isMounted) return null;
 
@@ -384,69 +398,17 @@ export default function AdminInventory() {
           <div className="table-loading-cell">Đang tải danh sách kho...</div>
         ) : (
           <>
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Sản phẩm</th>
-                  <th>Email/Username</th>
-                  <th>Mật khẩu</th>
-                  <th>Slot (Đã bán / Trống)</th>
-                  <th>Trạng thái</th>
-                  <th>Ngày nhập</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventory.length === 0 ? (
-                  <tr>
-                    <td className="table-empty-cell" colSpan={8}>Không có tài khoản nào trong kho hàng.</td>
-                  </tr>
-                ) : (
-                  inventory.map(item => (
-                    <tr key={item.accountItemId}>
-                      <td>#{item.accountItemId}</td>
-                      <td className="admin-text-bold">{item.productName}</td>
-                      <td>{item.accountEmail}</td>
-                      <td><code>{item.accountPassword}</code></td>
-                      <td>
-                        {item.totalSlots !== null && item.totalSlots !== undefined ? (
-                          <span>
-                            {item.soldSlots} / {item.freeSlots} (Tổng: {item.totalSlots})
-                          </span>
-                        ) : (
-                          <span className="admin-text-muted">N/A</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={`admin-badge ${item.itemStatusId === 1 ? 'success' : item.itemStatusId === 2 ? 'warning' : 'info'}`}>
-                          {item.statusName}
-                        </span>
-                      </td>
-                      <td>{new Date(item.createdAt).toLocaleDateString()}</td>
-                      <td className="admin-actions-cell">
-                        <div className="admin-table-actions">
-                          <button 
-                            className="btn-admin-action edit" 
-                            onClick={() => handleOpenSlotsModal(item)}
-                          >
-                            Sửa
-                          </button>
-                          <button className="btn-admin-action delete" onClick={() => setPendingDeleteId(item.accountItemId)}>
-                            Xóa
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <AdminTable 
+              columns={inventoryColumns} 
+              data={inventory} 
+              rowKey="accountItemId" 
+              emptyText="Không có tài khoản nào trong kho hàng." 
+            />
             <AdminPagination
               currentPage={currentPage}
               hasMore={hasMore}
               onPrev={handlePrev}
-              onNext={handleNext}
+              onNext={() => handleNext(inventory)}
             />
           </>
         )}
@@ -461,8 +423,6 @@ export default function AdminInventory() {
         onConfirm={executeDeleteInventory}
         onCancel={() => setPendingDeleteId(null)}
       />
-
-      <AdminToast toast={toast} />
 
       {isImportModalOpen && (
         <Portal>

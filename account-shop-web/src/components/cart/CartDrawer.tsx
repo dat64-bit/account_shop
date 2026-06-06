@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/config';
 import api from '@/lib/axios';
-import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminToast } from '@/components/admin/AdminToast';
 import CartItem from '@/components/cart/CartItem';
 import CartSummary from '@/components/cart/CartSummary';
 
@@ -25,7 +25,7 @@ export default function CartDrawer() {
   const [checkoutStatus, setCheckoutStatus] = useState<'idle' | 'processing' | 'success' | 'error' | 'partial'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const isProcessingRef = React.useRef(false);
-  const { toast, showToast } = useAdminToast();
+  const { showToast } = useAdminToast();
 
   if (!isCartOpen) return null;
 
@@ -85,7 +85,6 @@ export default function CartDrawer() {
 
   return (
     <div className="mobile-drawer-overlay" onClick={() => setIsCartOpen(false)} style={{ zIndex: 10000 }}>
-      <AdminToast toast={toast} />
       <div 
         className="mobile-drawer animate-in slide-in-from-right duration-300" 
         onClick={e => e.stopPropagation()}

@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react';
 import Portal from '@/components/common/Portal';
 import { AdminTableCard } from '@/components/admin/AdminTableCard';
-import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import AdminTable, { Column } from '@/components/admin/AdminTable';
 import api from '@/lib/axios';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useKeysetPagination } from '@/hooks/useKeysetPagination';
 
 export default function AdminTransactions() {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -15,15 +18,13 @@ export default function AdminTransactions() {
   // Filters & Keyset Pagination
   const [statusFilter, setStatusFilter] = useState<number | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
-  const [debouncedKeyword, setDebouncedKeyword] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [cursors, setCursors] = useState<(number | null)[]>([null]);
-  const { toast, showToast } = useAdminToast();
+  const debouncedKeyword = useDebounce(keyword, 1000);
+  const { showToast } = useAdminToast();
 
   // ── Manual Credit Modal ──────────────────────────────────────
   const [creditModalOpen, setCreditModalOpen] = useState(false);
   const [creditKeyword, setCreditKeyword] = useState('');
+  const debouncedCreditKeyword = useDebounce(creditKeyword, 500);
   const [creditUsers, setCreditUsers] = useState<any[]>([]);
   const [creditUsersLoading, setCreditUsersLoading] = useState(false);
   const [selectedCreditUser, setSelectedCreditUser] = useState<any>(null);
@@ -34,29 +35,22 @@ export default function AdminTransactions() {
   // ── Balance Lock Modal ───────────────────────────────────────
   const [lockModalOpen, setLockModalOpen] = useState(false);
   const [lockKeyword, setLockKeyword] = useState('');
+  const debouncedLockKeyword = useDebounce(lockKeyword, 500);
   const [lockUsers, setLockUsers] = useState<any[]>([]);
   const [lockUsersLoading, setLockUsersLoading] = useState(false);
   const [locking, setLocking] = useState(false);
 
-  // Debounce main search
+  // Fetch credit user search
   useEffect(() => {
-    const h = setTimeout(() => setDebouncedKeyword(keyword), 1000);
-    return () => clearTimeout(h);
-  }, [keyword]);
+    if (!debouncedCreditKeyword.trim()) { setCreditUsers([]); return; }
+    searchUsers(debouncedCreditKeyword, setCreditUsers, setCreditUsersLoading);
+  }, [debouncedCreditKeyword]);
 
-  // Debounce credit user search
+  // Fetch lock user search
   useEffect(() => {
-    if (!creditKeyword.trim()) { setCreditUsers([]); return; }
-    const h = setTimeout(() => searchUsers(creditKeyword, setCreditUsers, setCreditUsersLoading), 500);
-    return () => clearTimeout(h);
-  }, [creditKeyword]);
-
-  // Debounce lock user search
-  useEffect(() => {
-    if (!lockKeyword.trim()) { setLockUsers([]); return; }
-    const h = setTimeout(() => searchUsers(lockKeyword, setLockUsers, setLockUsersLoading), 500);
-    return () => clearTimeout(h);
-  }, [lockKeyword]);
+    if (!debouncedLockKeyword.trim()) { setLockUsers([]); return; }
+    searchUsers(debouncedLockKeyword, setLockUsers, setLockUsersLoading);
+  }, [debouncedLockKeyword]);
 
   const searchUsers = async (kw: string, setUsers: (u: any[]) => void, setLoading: (b: boolean) => void) => {
     setLoading(true);
@@ -88,25 +82,21 @@ export default function AdminTransactions() {
     }
   };
 
+  const {
+    currentPage,
+    setCurrentPage,
+    hasMore,
+    setHasMore,
+    cursors,
+    handlePrev,
+    handleNext,
+    resetPagination
+  } = useKeysetPagination(fetchData, (tx: any) => tx.transactionId);
+
   useEffect(() => { setIsMounted(true); }, []);
   useEffect(() => {
-    if (isMounted) { setCursors([null]); fetchData(null, 1); }
+    if (isMounted) { resetPagination(); fetchData(null, 1); }
   }, [statusFilter, debouncedKeyword, isMounted]);
-
-  const handlePrev = () => {
-    if (currentPage > 1) {
-      const prevPage = currentPage - 1;
-      fetchData(cursors[prevPage - 1], prevPage);
-    }
-  };
-  const handleNext = () => {
-    if (hasMore && transactions.length > 0) {
-      const nextPage = currentPage + 1;
-      const lastId = transactions[transactions.length - 1].transactionId;
-      setCursors(prev => { const c = [...prev]; c[nextPage - 1] = lastId; return c; });
-      fetchData(lastId, nextPage);
-    }
-  };
 
   // ── Manual Credit Submit ──────────────────────────────────────
   const handleCredit = async () => {
@@ -161,6 +151,29 @@ export default function AdminTransactions() {
     }
   };
 
+  const transactionColumns: Column[] = [
+    { title: 'Mã GD', dataIndex: 'transactionId', render: (id: number) => `#${id}` },
+    { title: 'Người dùng', dataIndex: 'username', render: (val: string) => <span className="admin-text-bold">{val || 'UNKNOWN'}</span> },
+    { title: 'Số tiền', dataIndex: 'amount', render: (val: number) => <span className="admin-text-price">{val?.toLocaleString()}đ</span> },
+    { title: 'Loại GD', dataIndex: 'transactionTypeName', render: (val: string) => val || 'N/A' },
+    { title: 'Phương thức', dataIndex: 'paymentMethodName', render: (val: string) => val || 'N/A' },
+    {
+      title: 'Mô tả', dataIndex: 'description', render: (val: string) => (
+        <div className="table-truncate-cell" title={val}>
+          {val || '-'}
+        </div>
+      )
+    },
+    {
+      title: 'Trạng thái', dataIndex: 'transactionStatusName', render: (status: string) => (
+        <span className={`admin-badge ${getStatusBadgeClass(status)}`}>
+          {getStatusText(status)}
+        </span>
+      )
+    },
+    { title: 'Thời gian', dataIndex: 'createdAt', render: (date: string) => new Date(date).toLocaleString() }
+  ];
+
   if (!isMounted) return null;
 
   return (
@@ -213,59 +226,21 @@ export default function AdminTransactions() {
             <div className="table-loading-cell">Đang tải danh sách giao dịch...</div>
           ) : (
             <>
-              <div className="table-responsive">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Mã GD</th>
-                      <th>Người dùng</th>
-                      <th>Số tiền</th>
-                      <th>Loại GD</th>
-                      <th>Phương thức</th>
-                      <th>Mô tả</th>
-                      <th>Trạng thái</th>
-                      <th>Thời gian</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {transactions.length === 0 ? (
-                      <tr>
-                        <td className="table-empty-cell" colSpan={8}>Không tìm thấy giao dịch nào.</td>
-                      </tr>
-                    ) : (
-                      transactions.map(tx => (
-                        <tr key={tx.transactionId}>
-                          <td>#{tx.transactionId}</td>
-                          <td className="admin-text-bold">{tx.username || 'UNKNOWN'}</td>
-                          <td className="admin-text-price">{tx.amount.toLocaleString()}đ</td>
-                          <td>{tx.transactionTypeName || 'N/A'}</td>
-                          <td>{tx.paymentMethodName || 'N/A'}</td>
-                          <td className="table-truncate-cell" title={tx.description}>
-                            {tx.description || '-'}
-                          </td>
-                          <td>
-                            <span className={`admin-badge ${getStatusBadgeClass(tx.transactionStatusName)}`}>
-                              {getStatusText(tx.transactionStatusName)}
-                            </span>
-                          </td>
-                          <td>{new Date(tx.createdAt).toLocaleString()}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <AdminTable 
+                columns={transactionColumns} 
+                data={transactions} 
+                rowKey="transactionId" 
+                emptyText="Không tìm thấy giao dịch nào." 
+              />
               <AdminPagination
                 currentPage={currentPage}
                 hasMore={hasMore}
                 onPrev={handlePrev}
-                onNext={handleNext}
+                onNext={() => handleNext(transactions)}
               />
             </>
           )}
         </AdminTableCard>
-
-        <AdminToast toast={toast} />
       </div>
 
       {/* ── Modal: Cộng tiền thủ công ────────────────────────────── */}

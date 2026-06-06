@@ -4,9 +4,12 @@ import { useState, useEffect } from 'react';
 import Portal from '@/components/common/Portal';
 import { AdminTableCard } from '@/components/admin/AdminTableCard';
 import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
-import { AdminToast, useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminToast } from '@/components/admin/AdminToast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import AdminTable from '@/components/admin/AdminTable';
 import api from '@/lib/axios';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useKeysetPagination } from '@/hooks/useKeysetPagination';
 
 const Plus = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -16,6 +19,47 @@ const Plus = () => (
     </line>
   </svg>
 );
+
+export const getCategoryColumns = (
+  onEdit: (cat: any) => void,
+  onToggleStatus: (cat: any) => void
+) => [
+    {
+      title: 'ID',
+      dataIndex: 'categoryId',
+      render: (id: any) => `#${id}`
+    },
+    {
+      title: 'Tên danh mục',
+      dataIndex: 'categoryName',
+      render: (name: any) => <strong>{name}</strong>
+    },
+    {
+      title: 'Mô tả',
+      dataIndex: 'description'
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'isActive',
+      render: (isActive: any) => (
+        <span className={`admin-badge ${isActive ? 'success' : 'warning'}`}>
+          {isActive ? 'Đang bật' : 'Đang tắt'}
+        </span>
+      )
+    },
+    {
+      title: 'Thao tác',
+      dataIndex: 'actions',
+      render: (_: any, cat: any) => (
+        <div className="admin-table-actions">
+          <button className="btn-admin-action edit" onClick={() => onEdit(cat)}>Sửa</button>
+          <button className={`btn-admin-action ${cat.isActive ? 'lock' : 'edit'}`} onClick={() => onToggleStatus(cat)}>
+            {cat.isActive ? 'Tắt' : 'Bật'}
+          </button>
+        </div>
+      )
+    }
+  ];
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -29,24 +73,13 @@ export default function AdminCategories() {
     description: '',
     isActive: true
   });
-  const { toast, showToast } = useAdminToast();
+  const { showToast } = useAdminToast();
   const [pendingCategory, setPendingCategory] = useState<any>(null);
 
   // Filters & Keyset Pagination States
   const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
-  const [debouncedKeyword, setDebouncedKeyword] = useState('');
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedKeyword(keyword);
-    }, 1000);
-    return () => clearTimeout(handler);
-  }, [keyword]);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [cursors, setCursors] = useState<(number | null)[]>([null]);
+  const debouncedKeyword = useDebounce(keyword, 1000);
 
   const fetchData = async (lastId: number | null, page: number) => {
     setLoading(true);
@@ -68,6 +101,17 @@ export default function AdminCategories() {
     }
   };
 
+  const {
+    currentPage,
+    setCurrentPage,
+    hasMore,
+    setHasMore,
+    cursors,
+    handlePrev,
+    handleNext,
+    resetPagination
+  } = useKeysetPagination(fetchData, (cat: any) => cat.categoryId);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -75,31 +119,10 @@ export default function AdminCategories() {
   // Fetch data when filters change
   useEffect(() => {
     if (isMounted) {
-      setCursors([null]);
+      resetPagination();
       fetchData(null, 1);
     }
   }, [isActiveFilter, debouncedKeyword, isMounted]);
-
-  const handlePrev = () => {
-    if (currentPage > 1) {
-      const prevPage = currentPage - 1;
-      const prevLastId = cursors[prevPage - 1];
-      fetchData(prevLastId, prevPage);
-    }
-  };
-
-  const handleNext = () => {
-    if (hasMore && categories.length > 0) {
-      const nextPage = currentPage + 1;
-      const currentLastId = categories[categories.length - 1].categoryId;
-      setCursors(prev => {
-        const nextCursors = [...prev];
-        nextCursors[nextPage - 1] = currentLastId;
-        return nextCursors;
-      });
-      fetchData(currentLastId, nextPage);
-    }
-  };
 
   const handleToggleCategoryStatus = (category: any) => {
     if (category.isActive) {
@@ -127,7 +150,7 @@ export default function AdminCategories() {
     }
   };
 
-  const handleSaveCategory = async (e: React.FormEvent) => {
+  const handleSaveCategory = async (e: React.SyntheticEvent<HTMLFormElement, Event>) => {
     e.preventDefault();
     const body = {
       ...categoryForm,
@@ -143,6 +166,14 @@ export default function AdminCategories() {
       showToast('Lỗi lưu danh mục hoặc kết nối máy chủ.', 'error');
     }
   };
+
+  const handleEditCategory = (cat: any) => {
+    setEditingCategory(cat);
+    setCategoryForm({ categoryName: cat.categoryName, description: cat.description, isActive: cat.isActive });
+    setCategoryModalOpen(true);
+  };
+
+  const columns = getCategoryColumns(handleEditCategory, handleToggleCategoryStatus);
 
   if (!isMounted) return null;
 
@@ -191,54 +222,17 @@ export default function AdminCategories() {
           <div className="table-loading-cell">Đang tải danh sách danh mục...</div>
         ) : (
           <>
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Tên danh mục</th>
-                  <th>Mô tả</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.length === 0 ? (
-                  <tr>
-                    <td className="table-empty-cell" colSpan={5}>Không tìm thấy danh mục nào.</td>
-                  </tr>
-                ) : (
-                  categories.map(cat => (
-                    <tr key={cat.categoryId}>
-                      <td>#{cat.categoryId}</td>
-                      <td><strong>{cat.categoryName}</strong></td>
-                      <td>{cat.description}</td>
-                      <td>
-                        <span className={`admin-badge ${cat.isActive ? 'success' : 'warning'}`}>
-                          {cat.isActive ? 'Đang bật' : 'Đang tắt'}
-                        </span>
-                      </td>
-                      <td className="admin-actions-cell">
-                        <div className="admin-table-actions">
-                          <button className="btn-admin-action edit" onClick={() => {
-                            setEditingCategory(cat);
-                            setCategoryForm({ categoryName: cat.categoryName, description: cat.description, isActive: cat.isActive });
-                            setCategoryModalOpen(true);
-                          }}>Sửa</button>
-                          <button className={`btn-admin-action ${cat.isActive ? 'lock' : 'edit'}`} onClick={() => handleToggleCategoryStatus(cat)}>
-                            {cat.isActive ? 'Tắt' : 'Bật'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <AdminTable 
+              columns={columns} 
+              data={categories} 
+              rowKey="categoryId" 
+              emptyText="Không tìm thấy danh mục nào." 
+            />
             <AdminPagination
               currentPage={currentPage}
               hasMore={hasMore}
               onPrev={handlePrev}
-              onNext={handleNext}
+              onNext={() => handleNext(categories)}
             />
           </>
         )}
@@ -282,8 +276,6 @@ export default function AdminCategories() {
         onConfirm={() => executeToggleStatus(pendingCategory)}
         onCancel={() => setPendingCategory(null)}
       />
-
-      <AdminToast toast={toast} />
     </div>
   );
 }
