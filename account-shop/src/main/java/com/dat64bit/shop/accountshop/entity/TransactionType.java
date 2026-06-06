@@ -16,7 +16,7 @@ public class TransactionType {
     @Column(name = "transaction_type_id")
     private Integer transactionTypeId;
 
-    @Column(name = "type_name")
+    @Column(name = "type_name", unique = true)
     private String typeName;
 
     @Column(name = "description")

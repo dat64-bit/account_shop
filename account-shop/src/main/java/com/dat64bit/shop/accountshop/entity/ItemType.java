@@ -16,7 +16,7 @@ public class ItemType {
     @Column(name = "item_type_id")
     private Integer itemTypeId;
 
-    @Column(name = "type_name")
+    @Column(name = "type_name", unique = true)
     private String typeName;
 
     @Column(name = "description")
