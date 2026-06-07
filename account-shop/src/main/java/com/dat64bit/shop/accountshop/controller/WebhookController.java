@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
 @RequestMapping("/api/public/webhook")
 public class WebhookController {
 
-    @Value("${sepay.webhook.token:}")
+    @Value("${sepay.webhook.token}")
     private String sepayToken;
 
     @Autowired
@@ -38,8 +38,10 @@ public class WebhookController {
         }
 
         try {
+            Object jsonObject = objectMapper.readValue(rawBody, Object.class);
+            String minifiedJson = objectMapper.writeValueAsString(jsonObject);
             // Verify HMAC-SHA256 Signature
-            String payload = timestamp + "." + rawBody;
+            String payload = timestamp + "." + minifiedJson;
             Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
             SecretKeySpec secret_key = new SecretKeySpec(sepayToken.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             sha256_HMAC.init(secret_key);
@@ -47,16 +49,14 @@ public class WebhookController {
             byte[] hashBytes = sha256_HMAC.doFinal(payload.getBytes(StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();
             for (byte b : hashBytes) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1)
-                    hexString.append('0');
-                hexString.append(hex);
+                hexString.append(String.format("%02x", b));
             }
 
             String expectedSignature = "sha256=" + hexString.toString();
 
             if (!signatureHeader.equals(expectedSignature)) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid HMAC signature");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("Invalid HMAC signature");
             }
 
             // Signature valid, parse JSON and process
