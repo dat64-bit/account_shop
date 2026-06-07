@@ -55,6 +55,12 @@ public class WebhookController {
             String expectedSignature = "sha256=" + hexString.toString();
 
             if (!signatureHeader.equals(expectedSignature)) {
+                // debug
+                System.out.println("DEBUG - Signature mismatch!");
+                System.out.println("Token used: " + sepayToken + "-");
+                System.out.println("Payload: " + payload);
+                System.out.println("Received: " + signatureHeader);
+                System.out.println("Expected: " + expectedSignature);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body("Invalid HMAC signature");
             }
