@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-04T09:44:00Z",
+  "title": "Design System: Account Shop Design System",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Trust Blue", "canonical": "#3b82f6" },
+      "primary-dark": { "role": "primary", "displayName": "Trust Blue Dark", "canonical": "#2563eb" },
+      "bg-white": { "role": "neutral", "displayName": "Surface White", "canonical": "#ffffff" },
+      "text-main": { "role": "neutral", "displayName": "Text Main", "canonical": "#0f172a" }
+    },
+    "shadows": [
+      { "name": "shadow-sm", "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)", "purpose": "Standard cards and low-elevation surfaces" },
+      { "name": "shadow-premium", "value": "0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05)", "purpose": "Critical overlays and sticky headers" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main action button.",
+      "html": "<button class=\"ds-btn-primary\">SUBMIT</button>",
+      "css": ".ds-btn-primary { background: #3b82f6; color: white; padding: 9px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; transition: background 0.2s; } .ds-btn-primary:hover { background: #2563eb; }"
+    },
+    {
+      "name": "Text Button",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Secondary actions with transparent background.",
+      "html": "<button class=\"ds-btn-text\">Cancel</button>",
+      "css": ".ds-btn-text { background: transparent; color: #0f172a; padding: 8px 12px; border-radius: 12px; font-weight: 500; font-size: 14px; border: none; cursor: pointer; transition: background 0.2s; } .ds-btn-text:hover { background: #eff6ff; color: #3b82f6; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Modern Marketplace",
+    "overview": "This design system is built to balance a premium, trustworthy feel with a modern, dynamic shopping experience. It relies on a 'Soft & Tactile' geometry—using generous 12px-16px corner radii and smooth, layered drop shadows to make actionable elements feel touchable and elevated. The color palette centers around 'Trust Blue' to convey security and professionalism, paired with clean typography that ensures clarity above all else. It explicitly avoids messy layouts, playful fonts, and cluttered interfaces.",
+    "keyCharacteristics": [
+      "Soft & Tactile surfaces with clear elevation",
+      "Trustworthy and professional 'Trust Blue' anchoring",
+      "Clean, breathable spacing",
+      "Crisp typography pairing (Outfit for display, Inter for body)"
+    ],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "The primary accent (Trust Blue) is used deliberately for interaction and current state. Do not flood the screen with it; its rarity provides its power.", "section": "colors" },
+      { "name": "The Readability Rule", "body": "Never sacrifice contrast for style. Body text must maintain a minimum 4.5:1 contrast ratio against its background.", "section": "typography" },
+      { "name": "The Tactile Surface Rule", "body": "Interactive components like cards and primary buttons should feel physically present. Use soft shadows (`shadow-sm`) at rest and elevate on hover.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use `var(--primary)` for primary actions and logical focus points.",
+      "Do maintain a minimum 4.5:1 contrast ratio for all reading text.",
+      "Do use 12px-16px border radii to keep the interface soft and tactile."
+    ],
+    "donts": [
+      "Don't use playful, childish fonts or messy layouts.",
+      "Don't use heavy, thick, or harsh black shadows; use the soft `var(--shadow-sm)` variables.",
+      "Don't use highly saturated, colorful gradients for standard UI elements (save gradients only for rare 'premium' highlights).",
+      "Don't cram too many buttons into small spaces without proper hierarchy; avoid clunky Admin interfaces."
+    ]
+  }
+}

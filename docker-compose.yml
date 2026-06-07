@@ -12,7 +12,7 @@ services:
     restart: unless-stopped
     network_mode: "host"
     env_file:
-      - ./account-shop/.env
+      - ./.env
 
   frontend:
     image: ghcr.io/dat64-bit/account-shop-frontend:latest
