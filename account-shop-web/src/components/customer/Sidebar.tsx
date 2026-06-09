@@ -17,6 +17,9 @@ const Clock = () => (
 const MessageSquare = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
 );
+const CreditCard = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+);
 
 export default function CustomerSidebar() {
   const pathname = usePathname();
@@ -64,6 +67,13 @@ export default function CustomerSidebar() {
           style={{ textDecoration: 'none' }}
         >
           <Clock /> Lịch sử mua hàng
+        </Link>
+        <Link
+          href="/transactions"
+          className={pathname === '/transactions' ? 'active' : ''}
+          style={{ textDecoration: 'none' }}
+        >
+          <CreditCard /> Lịch sử giao dịch
         </Link>
         <Link
           href="/profile"

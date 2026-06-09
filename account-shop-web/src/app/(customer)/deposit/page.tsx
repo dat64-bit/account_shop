@@ -38,10 +38,10 @@ export default function DepositPage() {
         api.get('/auth/me')
           .then(res => {
             if (isMounted && res.data) {
-              setUser(prev => prev ? { 
-                ...prev, 
+              setUser(prev => prev ? {
+                ...prev,
                 id: res.data.accountId || prev.id,
-                balance: res.data.balance ?? null 
+                balance: res.data.balance ?? null
               } : null);
             }
           })
@@ -88,17 +88,16 @@ export default function DepositPage() {
 
   return (
     <>
-      <Header />
       <main className="dashboard-page">
         <div className="container deposit-container">
-          
-          <button 
+
+          <button
             onClick={() => router.push('/dashboard')}
             className="btn-text btn-back-dashboard"
           >
             <ArrowLeft size={16} /> Quay lại Dashboard
           </button>
-          
+
           <div className="content-card animate-in deposit-card">
             <div className="card-header deposit-header">
               <h1 className="card-title deposit-title">
@@ -111,14 +110,14 @@ export default function DepositPage() {
             </div>
 
             <div className="deposit-grid">
-              
+
               {/* Left: Info */}
               <div>
                 <div className="account-item-card deposit-info-card">
                   <div className="account-card-head deposit-info-head">
                     <strong className="deposit-info-title">Thông tin chuyển khoản</strong>
                   </div>
-                  
+
                   <div className="account-card-body">
                     <div className="account-field deposit-field">
                       <span className="label">Ngân hàng:</span>
@@ -191,7 +190,6 @@ export default function DepositPage() {
 
         </div>
       </main>
-      <Footer />
     </>
   );
 }
