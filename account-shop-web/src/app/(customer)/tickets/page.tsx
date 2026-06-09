@@ -1,249 +1,209 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import Portal from '@/components/common/Portal';
-import { AdminPagination } from '@/components/admin/AdminPagination';
+import { useState, useEffect, useRef } from 'react';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import api from '@/lib/axios';
+import { API_BASE_URL } from '@/lib/config';
 
-const Plus = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-);
-const Camera = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-);
-const X = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-);
+interface ChatMessage {
+  sender: string;
+  content: string;
+  timestamp: string;
+  type?: string;
+  orderId?: number;
+  accountId?: number;
+  conversationId?: number;
+}
 
-export default function TicketsPage() {
-  const [tickets, setTickets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showTicketModal, setShowTicketModal] = useState(false);
-  
-  const [ticketStatusFilter, setTicketStatusFilter] = useState<number | undefined>(undefined);
-  const [ticketsHasMore, setTicketsHasMore] = useState(false);
-  const [ticketsCursors, setTicketsCursors] = useState<(number | null)[]>([null]);
-  const [currentTicketsPage, setCurrentTicketsPage] = useState(1);
-
+export default function ChatRoomPage() {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [connected, setConnected] = useState(false);
+  const [userInfo, setUserInfo] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [ticketMessage, setTicketMessage] = useState('');
+  const [selectedOrderId, setSelectedOrderId] = useState<string>('');
+  const [loadingHistory, setLoadingHistory] = useState(true);
 
-  const fetchTickets = async (lastId: number | null, page: number, currentStatusFilter = ticketStatusFilter) => {
-    try {
-      setLoading(true);
-      let url = `/user/tickets/my-tickets?limit=15`;
-      if (lastId) url += `&lastId=${lastId}`;
-      if (currentStatusFilter !== undefined) url += `&statusId=${currentStatusFilter}`;
-
-      const res = await api.get(url);
-      setTickets(res.data.content || []);
-      setTicketsHasMore(res.data.hasMore || false);
-      setCurrentTicketsPage(page);
-    } catch (e) {
-      console.error("Error fetching tickets:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const stompClientRef = useRef<Client | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setTicketsCursors([null]);
-    fetchTickets(null, 1, ticketStatusFilter);
-
-    // Fetch orders to populate select dropdown
-    api.get('/user/orders/my-orders?limit=100').then(res => {
-      setOrders(res.data.content || []);
-    }).catch(() => {});
-  }, [ticketStatusFilter]);
-
-  const handleTicketsPrev = () => {
-    if (currentTicketsPage > 1) {
-      const prevPage = currentTicketsPage - 1;
-      const prevLastId = ticketsCursors[prevPage - 1];
-      fetchTickets(prevLastId, prevPage);
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
-  };
+  }, [messages]);
 
-  const handleTicketsNext = () => {
-    if (ticketsHasMore && tickets.length > 0) {
-      const nextPage = currentTicketsPage + 1;
-      const currentLastId = tickets[tickets.length - 1].ticketId;
-      setTicketsCursors(prev => {
-        const nextCursors = [...prev];
-        nextCursors[nextPage - 1] = currentLastId;
-        return nextCursors;
+  useEffect(() => {
+    const initializeChat = async () => {
+      // 1. Fetch User Info
+      let currentUser = null;
+      try {
+        const res = await api.get('/auth/me'); // Dùng đúng endpoint /api/auth/me
+        currentUser = res.data;
+        setUserInfo(currentUser);
+      } catch (err) {
+        console.error("Không thể lấy thông tin user", err);
+      }
+
+      // 2. Lấy lịch sử đơn hàng
+      api.get('/user/orders/my-orders?limit=100').then(res => {
+        setOrders(res.data.content || []);
+      }).catch(() => { });
+
+      // 3. Nạp lịch sử chat (REST API)
+      try {
+        const historyRes = await api.get('/user/chat/history');
+        setMessages(historyRes.data || []);
+      } catch (err) {
+        console.error("Không thể lấy lịch sử chat", err);
+      }
+      setLoadingHistory(false);
+
+      if (!currentUser) return; // Nếu chưa đăng nhập thì không thể connect
+
+      // 4. Khởi tạo kết nối WebSocket
+      const client = new Client({
+        webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws-endpoint`, null, { withCredentials: true } as any),
+        reconnectDelay: 5000,
+        onConnect: () => {
+          console.log('Connected to WebSocket');
+          setConnected(true);
+
+          // Subscribe vào kênh CÁ NHÂN của khách hàng
+          client.subscribe(`/topic/user.${currentUser.accountId}`, (msg) => {
+            if (msg.body) {
+              const parsedMessage = JSON.parse(msg.body);
+              setMessages(prev => {
+                // Kiểm tra trùng lặp timestamp (do có thể nhận phản hồi chính mình gửi)
+                if (prev.some(m => m.timestamp === parsedMessage.timestamp)) return prev;
+                return [...prev, parsedMessage];
+              });
+            }
+          });
+        },
+        onStompError: (frame) => {
+          console.error('Broker reported error: ' + frame.headers['message']);
+        },
+        onWebSocketClose: () => {
+          setConnected(false);
+        }
       });
-      fetchTickets(currentLastId, nextPage);
-    }
-  };
 
-  const handleSubmitTicket = async () => {
-    if (!selectedOrderId) {
-      alert('Vui lòng chọn đơn hàng cần hỗ trợ!');
-      return;
-    }
-    if (!ticketMessage.trim()) {
-      alert('Vui lòng nhập mô tả chi tiết lỗi!');
-      return;
-    }
+      client.activate();
+      stompClientRef.current = client;
+    };
 
-    try {
-      await api.post('/user/tickets', {
-        orderDetailId: selectedOrderId,
-        issueType: 'ORDER_ISSUE',
-        message: ticketMessage
-      });
+    initializeChat();
 
-      setShowTicketModal(false);
-      setTicketMessage('');
-      setTicketsCursors([null]);
-      await fetchTickets(null, 1);
-      alert('Yêu cầu hỗ trợ đã được gửi thành công!');
-    } catch (error) {
-      console.error("Error submitting ticket:", error);
-      alert('Gửi yêu cầu thất bại, vui lòng thử lại.');
-    }
+    return () => {
+      if (stompClientRef.current) {
+        stompClientRef.current.deactivate();
+      }
+    };
+  }, []);
+
+  const sendMessage = () => {
+    if (!inputMessage.trim() || !stompClientRef.current || !connected || !userInfo) return;
+
+    const username = userInfo.username || 'Guest';
+    const messagePayload: ChatMessage = {
+      sender: username,
+      content: inputMessage,
+      timestamp: String(Date.now()),
+      type: selectedOrderId ? 'ORDER_REFERENCE' : 'CHAT',
+      orderId: selectedOrderId ? Number(selectedOrderId) : undefined,
+      accountId: userInfo.accountId
+    };
+
+    // Update locally for instant feedback
+    setMessages(prev => [...prev, messagePayload]);
+
+    stompClientRef.current.publish({
+      destination: '/app/chat.sendToAdmin',
+      body: JSON.stringify(messagePayload)
+    });
+
+    setInputMessage('');
+    setSelectedOrderId('');
   };
 
   return (
-    <div className="content-card animate-in">
+    <div className="content-card animate-in" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)' }}>
       <div className="card-header ticket-header-flex">
         <div>
-          <h2 className="card-title">Hỗ trợ khách hàng</h2>
-          <p className="card-subtitle">Gửi yêu cầu hỗ trợ nếu bạn gặp sự cố với tài khoản</p>
-        </div>
-        <button
-          className="btn-primary"
-          style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '10px 16px' }}
-          onClick={() => { setSelectedOrderId(null); setShowTicketModal(true); }}
-        >
-          <Plus /> Gửi yêu cầu mới
-        </button>
-      </div>
-
-      <div className="admin-filter-bar">
-        <div className="admin-filter-select-wrapper">
-          <select
-            className="admin-filter-select"
-            value={ticketStatusFilter === undefined ? 'all' : ticketStatusFilter}
-            onChange={e => {
-              const val = e.target.value;
-              setTicketStatusFilter(val === 'all' ? undefined : Number(val));
-            }}
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="1">Đang chờ</option>
-            <option value="3">Đang xử lý</option>
-            <option value="2">Đã xử lý</option>
-          </select>
+          <h2 className="card-title">Phòng Chat Hỗ Trợ</h2>
+          <p className="card-subtitle">
+            Trạng thái: <span style={{ color: connected ? '#10b981' : '#ef4444', fontWeight: 600 }}>{connected ? 'Đã kết nối' : 'Đang kết nối...'}</span>
+          </p>
         </div>
       </div>
 
-      <div className="table-responsive">
-        <table className="dashboard-table">
-          <thead>
-            <tr>
-              <th>Mã Ticket</th>
-              <th>Chủ đề</th>
-              <th>Trạng thái</th>
-              <th>Cập nhật</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40 }}>Đang tải dữ liệu...</td></tr>
-            ) : tickets.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40 }}>Chưa có ticket nào.</td></tr>
-            ) : tickets.map(ticket => (
-              <tr key={ticket.ticketId}>
-                <td><strong>#{ticket.ticketId}</strong></td>
-                <td><div className="table-product-name">{ticket.issueType}</div></td>
-                <td>
-                  <span className={`status-badge ${ticket.ticketStatusId === 1 ? 'open' : ticket.ticketStatusId === 2 ? 'resolved' : 'pending'}`}>
-                    {ticket.ticketStatusId === 1 ? 'Đang chờ' : ticket.ticketStatusId === 2 ? 'Đã xử lý' : 'Đang xử lý'}
-                  </span>
-                </td>
-                <td><span className="table-date">{new Date(ticket.updatedAt).toLocaleDateString()}</span></td>
-                <td>
-                  <button className="btn-view-account">Chi tiết</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <div ref={messagesContainerRef} className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '20px', background: '#f8fafc' }}>
+        {loadingHistory && <div style={{ textAlign: 'center', padding: 20, color: '#64748b' }}>Đang tải lịch sử...</div>}
 
-      <AdminPagination
-        currentPage={currentTicketsPage}
-        hasMore={ticketsHasMore}
-        onPrev={handleTicketsPrev}
-        onNext={handleTicketsNext}
-      />
+        {messages.map((msg, idx) => {
+          const isMe = userInfo && (msg.sender === userInfo.username);
 
-      <div className="ticket-empty-state" style={{ padding: '40px', textAlign: 'center', background: '#f8fafc', borderTop: '1px solid var(--border)' }}>
-        <p style={{ color: '#64748b', fontSize: 13 }}>Nếu bạn cần hỗ trợ gấp, vui lòng nhắn tin qua <strong>Zalo: 0123.456.789</strong></p>
-      </div>
-
-      {showTicketModal && (
-        <Portal>
-          <div className="modal-overlay">
-            <div className="modal-container ticket-modal animate-in">
-              <div className="modal-header">
-                <h3>Gửi yêu cầu hỗ trợ</h3>
-                <button className="btn-close" onClick={() => setShowTicketModal(false)}><X /></button>
+          return (
+            <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', marginBottom: '16px' }}>
+              <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px', padding: '0 4px' }}>
+                {isMe ? 'Bạn' : 'Hỗ trợ viên'}
               </div>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label>Chọn đơn hàng cần hỗ trợ <span style={{ color: '#ef4444' }}>*</span></label>
-                  <select
-                    className="ticket-select"
-                    value={selectedOrderId || ''}
-                    onChange={(e) => setSelectedOrderId(Number(e.target.value))}
-                  >
-                    <option value="">-- Chọn đơn hàng của bạn --</option>
-                    {orders.filter(o => o.orderStatus === 'COMPLETED').map(o => (
-                      <option key={o.orderId} value={o.orderId}>
-                        Order #{o.orderId} - {o.productName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ marginTop: 16 }}>
-                  <label>Mô tả chi tiết lỗi <span style={{ color: '#ef4444' }}>*</span></label>
-                  <textarea
-                    className="ticket-textarea"
-                    placeholder="Vui lòng mô tả vấn đề bạn đang gặp phải (VD: Tài khoản sai pass, Profile bị khóa...)"
-                    value={ticketMessage}
-                    onChange={(e) => setTicketMessage(e.target.value)}
-                  ></textarea>
-                </div>
-                <div className="form-group">
-                  <label>Hình ảnh minh họa (Tối đa 2 ảnh)</label>
-                  <div className="image-upload-grid">
-                    <div className="upload-box">
-                      <Camera />
-                      <span>Chọn ảnh 1</span>
-                    </div>
-                    <div className="upload-box">
-                      <Camera />
-                      <span>Chọn ảnh 2</span>
-                    </div>
+              <div style={{
+                background: isMe ? '#2563eb' : '#ffffff',
+                color: isMe ? '#ffffff' : '#0f172a',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                borderBottomRightRadius: isMe ? '4px' : '12px',
+                borderBottomLeftRadius: !isMe ? '4px' : '12px',
+                maxWidth: '70%',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                border: isMe ? 'none' : '1px solid #e2e8f0'
+              }}>
+                {msg.type === 'ORDER_REFERENCE' && (
+                  <div style={{ marginBottom: 8, padding: '6px 10px', background: isMe ? 'rgba(255,255,255,0.2)' : '#f8fafc', borderRadius: 6, fontSize: 13, border: isMe ? '1px solid rgba(255,255,255,0.3)' : '1px solid #e2e8f0' }}>
+                    <strong>Tham chiếu đơn hàng:</strong> #{msg.orderId}
                   </div>
-                </div>
-                <div className="ticket-modal-footer">
-                  <button className="btn-cancel" onClick={() => setShowTicketModal(false)}>Hủy bỏ</button>
-                  <button className="btn-submit-ticket" onClick={handleSubmitTicket}>
-                    Gửi yêu cầu hỗ trợ
-                  </button>
-                </div>
+                )}
+                {msg.content}
               </div>
             </div>
-          </div>
-        </Portal>
-      )}
+          );
+        })}
+      </div>
+
+      <div className="chat-input-area" style={{ padding: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '12px', background: '#fff', alignItems: 'center' }}>
+        <select
+          value={selectedOrderId}
+          onChange={e => setSelectedOrderId(e.target.value)}
+          disabled={!connected}
+          style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: 13, maxWidth: '150px' }}
+        >
+          <option value="">(Không đính kèm mã đơn)</option>
+          {orders.map(o => (
+            <option key={o.orderId} value={o.orderId}>#{o.orderId} - {o.productName}</option>
+          ))}
+        </select>
+        <input
+          type="text"
+          className="form-input"
+          placeholder="Nhập tin nhắn..."
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+          style={{ flex: 1, padding: '12px 16px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+          disabled={!connected}
+        />
+        <button
+          className="btn-primary"
+          onClick={sendMessage}
+          disabled={!connected || !inputMessage.trim()}
+          style={{ padding: '0 24px', borderRadius: '8px', fontWeight: 600 }}
+        >
+          Gửi
+        </button>
+      </div>
     </div>
   );
 }

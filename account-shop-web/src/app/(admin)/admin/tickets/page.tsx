@@ -1,234 +1,312 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { AdminTableCard } from '@/components/admin/AdminTableCard';
+import { useState, useEffect, useRef } from 'react';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import { useAdminToast } from '@/components/admin/AdminToast';
-import { AdminPagination } from '@/components/admin/AdminPagination';
-import AdminTable, { Column } from '@/components/admin/AdminTable';
 import api from '@/lib/axios';
-import { useDebounce } from '@/hooks/useDebounce';
-import { useKeysetPagination } from '@/hooks/useKeysetPagination';
+import { API_BASE_URL } from '@/lib/config';
 
-export default function AdminTickets() {
-  const [tickets, setTickets] = useState<any[]>([]);
-  const [selectedTicket, setSelectedTicket] = useState<any>(null);
-  const [ticketReplies, setTicketReplies] = useState<any[]>([]);
-  const [adminReply, setAdminReply] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
+interface ChatMessage {
+  sender: string;
+  content: string;
+  timestamp: string;
+  type?: string;
+  orderId?: number;
+  accountId?: number;
+  conversationId?: number;
+  targetAccountId?: number;
+}
+
+interface Conversation {
+  conversationId: number;
+  accountId: number;
+  username: string;
+  lastMessage: string;
+  lastMessageTimestamp: string;
+  hasUnread: boolean;
+}
+
+export default function AdminChatRoomPage() {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [connected, setConnected] = useState(false);
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+
+  const stompClientRef = useRef<Client | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const { showToast } = useAdminToast();
 
-  // Filters & Keyset Pagination States
-  const [statusFilter, setStatusFilter] = useState<number | undefined>(undefined);
-  const [keyword, setKeyword] = useState('');
-  const debouncedKeyword = useDebounce(keyword, 1000);
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      // Dùng scrollTop thay cho scrollIntoView để tránh bị kéo cả trang web
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
-  const fetchTickets = async (lastId: number | null, page: number) => {
-    setLoading(true);
-    try {
-      let url = `/admin/tickets?limit=15`;
-      if (lastId !== null) url += `&lastId=${lastId}`;
-      if (statusFilter !== undefined) url += `&statusId=${statusFilter}`;
-      if (debouncedKeyword.trim()) url += `&keyword=${encodeURIComponent(debouncedKeyword.trim())}`;
+  useEffect(() => {
+    // 1. Fetch Admin Info
+    const storedUserStr = localStorage.getItem('user_info');
+    if (storedUserStr) {
+      try {
+        setUserInfo(JSON.parse(storedUserStr));
+      } catch { }
+    }
 
-      const res = await api.get(url);
-      setTickets(res.data.content || []);
-      setHasMore(res.data.hasMore || false);
-      setCurrentPage(page);
-    } catch (error: any) {
-      console.error("Error fetching tickets:", error);
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        showToast('Phiên đăng nhập hết hạn hoặc không có quyền truy cập.', 'error');
-      } else {
-        showToast('Lỗi tải danh sách ticket hoặc kết nối máy chủ.', 'error');
+    // 2. Fetch Conversations List
+    fetchConversations();
+
+    // 3. Connect WebSocket
+    const client = new Client({
+      webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws-endpoint`, null, { withCredentials: true } as any),
+      reconnectDelay: 5000,
+      onConnect: () => {
+        console.log('Admin connected to WebSocket');
+        setConnected(true);
+        showToast('Đã kết nối với Server Chat', 'success');
+
+        // Subscribe vào kênh Admin
+        client.subscribe('/topic/admin', (msg) => {
+          if (msg.body) {
+            const parsedMessage: ChatMessage = JSON.parse(msg.body);
+
+            // Xử lý cập nhật Sidebar
+            setConversations(prev => {
+              const updated = [...prev];
+              const idx = updated.findIndex(c => c.conversationId === parsedMessage.conversationId);
+
+              if (idx >= 0) {
+                // Update existing
+                updated[idx].lastMessage = parsedMessage.content;
+                updated[idx].lastMessageTimestamp = parsedMessage.timestamp;
+                if (!selectedConv || selectedConv.conversationId !== parsedMessage.conversationId) {
+                  updated[idx].hasUnread = true;
+                }
+                // Move to top
+                const [item] = updated.splice(idx, 1);
+                updated.unshift(item);
+              } else {
+                // Tạm thời nếu có conversation mới cứng thì gọi lại API cho chắc
+                fetchConversations();
+              }
+              return updated;
+            });
+
+            // Xử lý cập nhật khung Chat (Nếu đang mở đúng conversation)
+            setSelectedConv(currSelected => {
+              if (currSelected && currSelected.conversationId === parsedMessage.conversationId) {
+                setMessages(prevMsgs => {
+                  if (prevMsgs.some(m => m.timestamp === parsedMessage.timestamp)) return prevMsgs;
+                  return [...prevMsgs, parsedMessage];
+                });
+              }
+              return currSelected;
+            });
+          }
+        });
+      },
+      onStompError: (frame) => {
+        console.error('Broker reported error: ' + frame.headers['message']);
+        showToast('Lỗi kết nối Server Chat', 'error');
+      },
+      onWebSocketClose: () => {
+        setConnected(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
 
-  const {
-    currentPage,
-    setCurrentPage,
-    hasMore,
-    setHasMore,
-    cursors,
-    handlePrev,
-    handleNext,
-    resetPagination
-  } = useKeysetPagination(fetchTickets, (ticket: any) => ticket.ticketId);
+    client.activate();
+    stompClientRef.current = client;
 
-  const fetchTicketReplies = async (ticketId: number) => {
+    return () => {
+      if (stompClientRef.current) {
+        stompClientRef.current.deactivate();
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchConversations = async () => {
     try {
-      const res = await api.get(`/user/tickets/${ticketId}/replies`);
-      setTicketReplies(res.data);
-    } catch (error) {
-      console.error("Error fetching replies:", error);
-      showToast('Lỗi tải nội dung phản hồi hoặc kết nối máy chủ.', 'error');
+      const res = await api.get('/admin/chat/conversations');
+      setConversations(res.data || []);
+    } catch (e) {
+      console.error("Lỗi lấy danh sách chat", e);
     }
   };
 
-  const handleOpenTicket = (ticket: any) => {
-    setSelectedTicket(ticket);
-    fetchTicketReplies(ticket.ticketId);
-  };
+  const handleSelectConversation = async (conv: Conversation) => {
+    setSelectedConv(conv);
+    setLoadingMessages(true);
+    setMessages([]); // Clear old messages
 
-  const handleSendReply = async () => {
-    if (!adminReply.trim()) return;
+    // Đánh dấu đã đọc
+    setConversations(prev => prev.map(c => c.conversationId === conv.conversationId ? { ...c, hasUnread: false } : c));
+
     try {
-      await api.post(`/user/tickets/${selectedTicket.ticketId}/replies`, { message: adminReply });
-      setAdminReply('');
-      fetchTicketReplies(selectedTicket.ticketId);
-      showToast('Gửi phản hồi thành công.', 'success');
-    } catch (error) {
-      console.error("Error sending reply:", error);
-      showToast('Lỗi gửi phản hồi hoặc kết nối.', 'error');
+      const res = await api.get(`/admin/chat/${conv.conversationId}/messages`);
+      setMessages(res.data || []);
+    } catch (e) {
+      console.error("Lỗi lấy tin nhắn", e);
     }
+    setLoadingMessages(false);
   };
 
-  const handleResolveTicket = async (newStatus: number) => {
-    try {
-      await api.put(`/admin/tickets/${selectedTicket.ticketId}/status?statusId=${newStatus}`);
-      fetchTickets(cursors[currentPage - 1], currentPage);
-      setSelectedTicket(null);
-      showToast('Cập nhật trạng thái ticket thành công.', 'success');
-    } catch (error) {
-      console.error("Error resolving ticket:", error);
-      showToast('Không thể cập nhật trạng thái hoặc lỗi kết nối.', 'error');
-    }
+  const sendMessage = () => {
+    if (!inputMessage.trim() || !stompClientRef.current || !connected || !selectedConv) return;
+
+    const username = userInfo?.username || 'Admin';
+    const messagePayload: ChatMessage = {
+      sender: username + ' (Admin)',
+      content: inputMessage,
+      timestamp: String(Date.now()),
+      type: 'CHAT',
+      targetAccountId: selectedConv.accountId, // Gửi đích danh
+      conversationId: selectedConv.conversationId
+    };
+
+    // Update locally instantly
+    setMessages(prev => [...prev, messagePayload]);
+
+    stompClientRef.current.publish({
+      destination: '/app/chat.sendToUser',
+      body: JSON.stringify(messagePayload)
+    });
+
+    setInputMessage('');
   };
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Fetch data when filters change
-  useEffect(() => {
-    if (isMounted) {
-      resetPagination();
-      fetchTickets(null, 1);
-    }
-  }, [statusFilter, debouncedKeyword, isMounted]);
-
-
-
-  const ticketColumns: Column[] = [
-    { title: 'Mã', dataIndex: 'ticketId', render: (id: number) => `#${id}` },
-    { title: 'Người dùng', dataIndex: 'username', render: (val: string) => val || 'Khách' },
-    { title: 'Chủ đề', dataIndex: 'issueType', render: (val: string) => <strong>{val}</strong> },
-    {
-      title: 'Trạng thái', dataIndex: 'ticketStatusId', render: (statusId: number) => (
-        <span className={`admin-badge ${statusId === 1 ? 'danger' : statusId === 2 ? 'success' : 'warning'}`}>
-          {statusId === 1 ? 'Chờ xử lý' : statusId === 2 ? 'Đã xong' : 'Đang xử lý'}
-        </span>
-      )
-    },
-    { title: 'Ngày tạo', dataIndex: 'createdAt', render: (date: string) => new Date(date).toLocaleDateString() },
-    {
-      title: 'Thao tác', dataIndex: 'actions', render: (_: any, t: any) => (
-        <div className="admin-table-actions">
-          <button className="btn-admin-action edit" onClick={() => handleOpenTicket(t)}>Xử lý ngay</button>
-        </div>
-      )
-    }
-  ];
-
-  if (!isMounted) return null;
 
   return (
-    <>
-      <div className="space-y-6">
-        <AdminTableCard title="Danh sách Ticket hỗ trợ">
-          {/* Bộ lọc động */}
-          <div className="admin-filter-bar">
-            <div className="admin-filter-search-wrapper">
-              <input
-                type="text"
-                placeholder="Tìm theo tên người dùng (username)..."
-                className="admin-filter-input"
-                value={keyword}
-                onChange={e => setKeyword(e.target.value)}
-              />
-            </div>
-            <div className="admin-filter-select-wrapper">
-              <select
-                className="admin-filter-select"
-                value={statusFilter === undefined ? 'all' : statusFilter.toString()}
-                onChange={e => {
-                  const val = e.target.value;
-                  setStatusFilter(val === 'all' ? undefined : parseInt(val));
+    <div className="content-card animate-in" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)' }}>
+      <div className="card-header" style={{ paddingBottom: 16, borderBottom: '1px solid #e2e8f0' }}>
+        <h2 className="card-title">Quản lý Hỗ Trợ 1-1</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: connected ? '#10b981' : '#ef4444' }}></div>
+          <span style={{ fontSize: 13, color: '#64748b' }}>{connected ? 'Trực tuyến' : 'Mất kết nối'}</span>
+        </div>
+      </div>
+
+      <div className="admin-chat-layout" style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: 0 }}>
+
+        {/* Sidebar */}
+        <div style={{ width: '320px', borderRight: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid #e2e8f0', fontWeight: 600, color: '#334155' }}>
+            Danh sách ({conversations.length})
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {conversations.map(conv => (
+              <div
+                key={conv.conversationId}
+                onClick={() => handleSelectConversation(conv)}
+                style={{
+                  padding: '16px',
+                  borderBottom: '1px solid #e2e8f0',
+                  cursor: 'pointer',
+                  background: selectedConv?.conversationId === conv.conversationId ? '#eff6ff' : '#fff',
+                  borderLeft: selectedConv?.conversationId === conv.conversationId ? '4px solid #3b82f6' : '4px solid transparent',
+                  transition: 'background 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
                 }}
               >
-                <option value="all">Tất cả trạng thái</option>
-                <option value="1">Chờ xử lý (Pending)</option>
-                <option value="3">Đang xử lý (In Progress)</option>
-                <option value="2">Đã xong (Completed)</option>
-              </select>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="table-loading-cell">Đang tải danh sách ticket...</div>
-          ) : (
-            <>
-              <AdminTable 
-                columns={ticketColumns} 
-                data={tickets} 
-                rowKey="ticketId" 
-                emptyText="Không tìm thấy ticket nào." 
-              />
-              <AdminPagination
-                currentPage={currentPage}
-                hasMore={hasMore}
-                onPrev={handlePrev}
-                onNext={() => handleNext(tickets)}
-              />
-            </>
-          )}
-        </AdminTableCard>
-
-        {/* Giao diện Chat/Xử lý Ticket */}
-        {selectedTicket && (
-          <div className="content-card animate-in">
-            <div className="card-header">
-              <h2 className="card-title">Xử lý Ticket #{selectedTicket.ticketId}</h2>
-              <button className="btn-close" onClick={() => setSelectedTicket(null)}>&times;</button>
-            </div>
-            <div className="admin-chat-layout">
-              <div className="chat-messages">
-                {ticketReplies.map((reply, idx) => (
-                  <div key={idx} className={`chat-bubble ${reply.isAdmin ? 'admin' : 'user'}`}>
-                    <div className={`bubble-content ${reply.isAdmin ? 'admin-bubble' : 'user-bubble'}`}>
-                      {reply.message}
-                      <div className="bubble-timestamp">{new Date(reply.createdAt).toLocaleTimeString()}</div>
+                {/* Avatar Placeholder */}
+                <img 
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(conv.username)}&background=random&color=fff&size=48`}
+                  alt="avatar"
+                  style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }}
+                />
+                
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <strong style={{ fontSize: 15, color: '#0f172a' }}>{conv.username}</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: 12, color: '#94a3b8' }}>{conv.lastMessageTimestamp ? new Date(parseInt(conv.lastMessageTimestamp)).toLocaleDateString('vi-VN') : ''}</span>
+                      {conv.hasUnread && <span style={{ width: 8, height: 8, background: '#ef4444', borderRadius: '50%' }}></span>}
                     </div>
                   </div>
-                ))}
+                  <div style={{ fontSize: 13, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {conv.lastMessage}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {conversations.length === 0 && (
+              <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
+                Chưa có cuộc trò chuyện nào
+              </div>
+            )}
+          </div>
+        </div>
 
-                {ticketReplies.length === 0 && <div className="text-center text-muted py-10">Chưa có phản hồi nào.</div>}
+        {/* Main Chat Area */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff' }}>
+          {!selectedConv ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+              <div style={{ textAlign: 'center' }}>
+                <i className="fi fi-rr-messages" style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}></i>
+                <p>Chọn một khách hàng ở danh sách bên trái để bắt đầu chat</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ padding: '16px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', zIndex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 16, color: '#0f172a' }}>Đang chat với: {selectedConv.username}</div>
               </div>
 
-              <div className="chat-input-area">
+              <div ref={messagesContainerRef} className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '24px', background: '#f8fafc' }}>
+                {loadingMessages && <div style={{ textAlign: 'center', color: '#64748b' }}>Đang nạp tin nhắn...</div>}
+                
+                {!loadingMessages && messages.map((msg, idx) => {
+                  const isAdmin = msg.sender.includes('(Admin)');
+
+                  return (
+                    <div key={idx} className={`chat-bubble ${isAdmin ? 'admin' : 'user'}`} style={{ marginBottom: 16 }}>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px', textAlign: isAdmin ? 'right' : 'left' }}>
+                        {isAdmin ? 'Bạn (Admin)' : selectedConv.username}
+                      </div>
+                      <div className={`bubble-content ${isAdmin ? 'admin-bubble' : 'user-bubble'}`}>
+                        {msg.type === 'ORDER_REFERENCE' && (
+                          <div style={{ marginBottom: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.2)', borderRadius: 6, fontSize: 13, border: isAdmin ? '1px solid rgba(255,255,255,0.3)' : '1px solid #e2e8f0', color: isAdmin ? '#fff' : '#000' }}>
+                            <strong>Tham chiếu đơn hàng:</strong> #{msg.orderId}
+                          </div>
+                        )}
+                        {msg.content}
+                        <div className="bubble-timestamp" style={{ opacity: 0.7, marginTop: 4 }}>
+                          {new Date(parseInt(msg.timestamp)).toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="chat-input-area" style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: '#fff', display: 'flex', gap: 12 }}>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="Nhập nội dung phản hồi..."
-                  value={adminReply}
-                  onChange={e => setAdminReply(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSendReply()}
+                  placeholder={`Nhập phản hồi cho ${selectedConv.username}...`}
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                  disabled={!connected}
+                  style={{ flex: 1, padding: '12px 16px', fontSize: 14, borderRadius: 8, border: '1px solid #cbd5e1' }}
                 />
-                <button className="btn-primary" onClick={handleSendReply}>Gửi</button>
+                <button
+                  className="btn-primary"
+                  onClick={sendMessage}
+                  disabled={!connected || !inputMessage.trim()}
+                  style={{ padding: '0 24px', borderRadius: 8, fontWeight: 600 }}
+                >
+                  Gửi
+                </button>
               </div>
-
-              <div className="chat-action-bar">
-                <button className="btn-view-account btn-resolve-success" onClick={() => handleResolveTicket(2)}>Xong (Hoàn tất)</button>
-                <button className="btn-view-account btn-resolve-pending" onClick={() => handleResolveTicket(3)}>Đang xử lý</button>
-                <button className="btn-view-account btn-close-chat" onClick={() => setSelectedTicket(null)}>Đóng hội thoại</button>
-              </div>
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
-    </>
+    </div>
   );
 }
