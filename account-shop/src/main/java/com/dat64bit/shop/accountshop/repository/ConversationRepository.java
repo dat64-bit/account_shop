@@ -10,5 +10,6 @@ import java.util.Optional;
 @Repository
 public interface ConversationRepository extends JpaRepository<Conversation, Integer> {
     Optional<Conversation> findByParticipantOneId(Integer participantOneId);
+    Optional<Conversation> findByParticipantOneIdAndParticipantTwoId(Integer participantOneId, Integer participantTwoId);
     List<Conversation> findAllByOrderByUpdatedAtDesc();
 }
