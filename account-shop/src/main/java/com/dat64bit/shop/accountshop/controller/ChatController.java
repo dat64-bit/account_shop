@@ -1,6 +1,6 @@
 package com.dat64bit.shop.accountshop.controller;
 
-import com.dat64bit.shop.accountshop.dto.ChatMessage;
+import com.dat64bit.shop.accountshop.dto.common.ChatMessage;
 import com.dat64bit.shop.accountshop.entity.Account;
 import com.dat64bit.shop.accountshop.entity.Conversation;
 import com.dat64bit.shop.accountshop.entity.Message;
@@ -33,7 +33,18 @@ public class ChatController {
             // Tìm conversation của User, hoặc tạo mới nếu cần. Thường thì REST API history đã tạo.
             Conversation conv = null;
             if (senderId != null) {
-                conv = conversationRepository.findByParticipantOneId(senderId).orElse(null);
+                Integer adminId = 1;
+                Integer p1 = Math.min(adminId, senderId);
+                Integer p2 = Math.max(adminId, senderId);
+                conv = conversationRepository.findByParticipantOneIdAndParticipantTwoId(p1, p2).orElseGet(() -> {
+                    Conversation newConv = Conversation.builder()
+                            .participantOneId(p1)
+                            .participantTwoId(p2)
+                            .createdAt(LocalDateTime.now())
+                            .updatedAt(LocalDateTime.now())
+                            .build();
+                    return conversationRepository.save(newConv);
+                });
             }
 
             if (conv != null) {
@@ -53,13 +64,16 @@ public class ChatController {
 
                 chatMessage.setConversationId(conv.getConversationId());
                 chatMessage.setAccountId(senderId);
+                chatMessage.setRole("USER");
             }
 
         } catch (Exception e) {
             System.err.println("Không thể lưu tin nhắn: " + e.getMessage());
         }
 
-        chatMessage.setTimestamp(String.valueOf(System.currentTimeMillis()));
+        if (chatMessage.getTimestamp() == null || chatMessage.getTimestamp().isEmpty()) {
+            chatMessage.setTimestamp(String.valueOf(System.currentTimeMillis()));
+        }
 
         // Broadcast cho bản thân Khách hàng (để hiện tin nhắn vừa gửi nếu cần)
         if (chatMessage.getAccountId() != null) {
@@ -76,13 +90,28 @@ public class ChatController {
             Conversation conv = null;
             
             if (targetAccountId != null) {
-                conv = conversationRepository.findByParticipantOneId(targetAccountId).orElse(null);
+                Integer adminId = 1;
+                Integer p1 = Math.min(adminId, targetAccountId);
+                Integer p2 = Math.max(adminId, targetAccountId);
+                conv = conversationRepository.findByParticipantOneIdAndParticipantTwoId(p1, p2).orElseGet(() -> {
+                    Conversation newConv = Conversation.builder()
+                            .participantOneId(p1)
+                            .participantTwoId(p2)
+                            .createdAt(LocalDateTime.now())
+                            .updatedAt(LocalDateTime.now())
+                            .build();
+                    return conversationRepository.save(newConv);
+                });
             }
 
             if (conv != null) {
+                Integer senderId = conv.getParticipantOneId().equals(targetAccountId)
+                        ? conv.getParticipantTwoId()
+                        : conv.getParticipantOneId();
+
                 Message msg = Message.builder()
                         .conversationId(conv.getConversationId())
-                        .senderId(null) // Admin gửi
+                        .senderId(senderId) // Admin gửi
                         .messageContent(chatMessage.getContent())
                         .messageType(chatMessage.getType() != null ? chatMessage.getType() : "CHAT")
                         .isRead(false)
@@ -95,12 +124,15 @@ public class ChatController {
 
                 chatMessage.setConversationId(conv.getConversationId());
                 chatMessage.setAccountId(targetAccountId);
+                chatMessage.setRole("ADMIN");
             }
         } catch (Exception e) {
             System.err.println("Không thể lưu tin nhắn Admin gửi: " + e.getMessage());
         }
 
-        chatMessage.setTimestamp(String.valueOf(System.currentTimeMillis()));
+        if (chatMessage.getTimestamp() == null || chatMessage.getTimestamp().isEmpty()) {
+            chatMessage.setTimestamp(String.valueOf(System.currentTimeMillis()));
+        }
 
         // Gửi tới đích danh Khách hàng
         if (chatMessage.getTargetAccountId() != null) {

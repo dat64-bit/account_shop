@@ -1,6 +1,6 @@
 package com.dat64bit.shop.accountshop.controller;
 
-import com.dat64bit.shop.accountshop.dto.ChatMessage;
+import com.dat64bit.shop.accountshop.dto.common.ChatMessage;
 import com.dat64bit.shop.accountshop.dto.response.ConversationResponse;
 import com.dat64bit.shop.accountshop.entity.Account;
 import com.dat64bit.shop.accountshop.entity.Conversation;
@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api")
@@ -40,11 +39,17 @@ public class ChatRestController {
     @GetMapping("/user/chat/history")
     public ResponseEntity<?> getUserChatHistory() {
         Account account = getCurrentAccount();
-        
-        Conversation conv = conversationRepository.findByParticipantOneId(account.getAccountId())
+        Integer customerId = account.getAccountId();
+        Integer adminId = 1; // Default admin ID
+
+        Integer p1 = Math.min(adminId, customerId);
+        Integer p2 = Math.max(adminId, customerId);
+
+        Conversation conv = conversationRepository.findByParticipantOneIdAndParticipantTwoId(p1, p2)
                 .orElseGet(() -> {
                     Conversation newConv = Conversation.builder()
-                            .participantOneId(account.getAccountId())
+                            .participantOneId(p1)
+                            .participantTwoId(p2)
                             .createdAt(LocalDateTime.now())
                             .updatedAt(LocalDateTime.now())
                             .build();
@@ -52,17 +57,21 @@ public class ChatRestController {
                 });
 
         List<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conv.getConversationId());
-        
+
         // Convert to DTO
         List<ChatMessage> dtos = messages.stream().map(m -> {
-            String senderName = m.getSenderId() != null && m.getSenderId().equals(account.getAccountId()) ? account.getUsername() : "Admin";
+            String senderName = m.getSenderId() != null && m.getSenderId().equals(account.getAccountId())
+                    ? account.getUsername()
+                    : "Admin";
             return ChatMessage.builder()
                     .sender(senderName)
                     .content(m.getMessageContent())
                     .type(m.getMessageType())
-                    .timestamp(String.valueOf(m.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()))
+                    .timestamp(String.valueOf(
+                            m.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()))
                     .accountId(account.getAccountId())
                     .conversationId(conv.getConversationId())
+                    .role(m.getSenderId() != null && m.getSenderId().equals(account.getAccountId()) ? "USER" : "ADMIN")
                     .build();
         }).toList();
 
@@ -77,18 +86,31 @@ public class ChatRestController {
         List<ConversationResponse> response = new ArrayList<>();
 
         for (Conversation conv : conversations) {
-            if (conv.getParticipantOneId() == null) continue;
-            
-            Account user = accountRepository.findById(conv.getParticipantOneId()).orElse(null);
+            if (conv.getParticipantOneId() == null)
+                continue;
+
+            Account p1 = accountRepository.findById(conv.getParticipantOneId()).orElse(null);
+            Account p2 = conv.getParticipantTwoId() != null ? accountRepository.findById(conv.getParticipantTwoId()).orElse(null) : null;
+            Account user = null;
+            if (p1 != null && p1.getRoleId() == 2) {
+                user = p1;
+            } else if (p2 != null && p2.getRoleId() == 2) {
+                user = p2;
+            }
+
             String username = user != null ? user.getUsername() : "Khách ẩn danh";
-            
+            Integer customerId = user != null ? user.getAccountId() : conv.getParticipantTwoId();
+
             Message lastMsg = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conv.getConversationId());
             String msgContent = lastMsg != null ? lastMsg.getMessageContent() : "Bắt đầu cuộc trò chuyện";
-            String msgTime = lastMsg != null ? String.valueOf(lastMsg.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()) : null;
+            String msgTime = lastMsg != null
+                    ? String.valueOf(
+                            lastMsg.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                    : null;
 
             response.add(ConversationResponse.builder()
                     .conversationId(conv.getConversationId())
-                    .accountId(conv.getParticipantOneId())
+                    .accountId(customerId)
                     .username(username)
                     .lastMessage(msgContent)
                     .lastMessageTimestamp(msgTime)
@@ -104,20 +126,31 @@ public class ChatRestController {
         Conversation conv = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy cuộc hội thoại"));
 
-        Account user = accountRepository.findById(conv.getParticipantOneId()).orElse(null);
+        Account p1 = accountRepository.findById(conv.getParticipantOneId()).orElse(null);
+        Account p2 = conv.getParticipantTwoId() != null ? accountRepository.findById(conv.getParticipantTwoId()).orElse(null) : null;
+        Account user = null;
+        if (p1 != null && p1.getRoleId() == 2) {
+            user = p1;
+        } else if (p2 != null && p2.getRoleId() == 2) {
+            user = p2;
+        }
+
         String username = user != null ? user.getUsername() : "Khách ẩn danh";
+        Integer customerId = user != null ? user.getAccountId() : conv.getParticipantTwoId();
 
         List<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
-        
+
         List<ChatMessage> dtos = messages.stream().map(m -> {
-            boolean isUser = m.getSenderId() != null && m.getSenderId().equals(conv.getParticipantOneId());
+            boolean isUser = m.getSenderId() != null && m.getSenderId().equals(customerId);
             return ChatMessage.builder()
                     .sender(isUser ? username : "Admin")
                     .content(m.getMessageContent())
                     .type(m.getMessageType())
-                    .timestamp(String.valueOf(m.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()))
-                    .accountId(conv.getParticipantOneId())
+                    .timestamp(String.valueOf(
+                            m.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()))
+                    .accountId(customerId)
                     .conversationId(conversationId)
+                    .role(isUser ? "USER" : "ADMIN")
                     .build();
         }).toList();
 

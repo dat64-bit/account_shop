@@ -1,4 +1,4 @@
-package com.dat64bit.shop.accountshop.dto;
+package com.dat64bit.shop.accountshop.dto.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,4 +18,5 @@ public class ChatMessage {
     private Integer accountId; // ID của Khách hàng trong đoạn chat
     private Integer conversationId; // Mã hội thoại
     private Integer targetAccountId; // Dùng cho Admin khi gửi tin nhắn cho một Khách hàng cụ thể
+    private String role; // "ADMIN" hoặc "USER"
 }
