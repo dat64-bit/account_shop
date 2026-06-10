@@ -6,15 +6,8 @@ import SockJS from 'sockjs-client';
 import api from '@/lib/axios';
 import { API_BASE_URL } from '@/lib/config';
 
-interface ChatMessage {
-  sender: string;
-  content: string;
-  timestamp: string;
-  type?: string;
-  orderId?: number;
-  accountId?: number;
-  conversationId?: number;
-}
+import ChatMessages, { ChatMessage } from '@/components/common/ChatMessages';
+import ChatInput from '@/components/common/ChatInput';
 
 export default function ChatRoomPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -139,71 +132,24 @@ export default function ChatRoomPage() {
         </div>
       </div>
 
-      <div ref={messagesContainerRef} className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '20px', background: '#f8fafc' }}>
-        {loadingHistory && <div style={{ textAlign: 'center', padding: 20, color: '#64748b' }}>Đang tải lịch sử...</div>}
+      <ChatMessages
+        messages={messages}
+        loading={loadingHistory}
+        isMe={(msg) => msg.role ? msg.role === 'USER' : (!!userInfo && msg.sender === userInfo.username)}
+        getSenderName={(msg) => (msg.role ? msg.role === 'USER' : (!!userInfo && msg.sender === userInfo.username)) ? 'Bạn' : 'Hỗ trợ viên'}
+        containerRef={messagesContainerRef}
+      />
 
-        {messages.map((msg, idx) => {
-          const isMe = userInfo && (msg.sender === userInfo.username);
-
-          return (
-            <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', marginBottom: '16px' }}>
-              <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px', padding: '0 4px' }}>
-                {isMe ? 'Bạn' : 'Hỗ trợ viên'}
-              </div>
-              <div style={{
-                background: isMe ? '#2563eb' : '#ffffff',
-                color: isMe ? '#ffffff' : '#0f172a',
-                padding: '12px 16px',
-                borderRadius: '12px',
-                borderBottomRightRadius: isMe ? '4px' : '12px',
-                borderBottomLeftRadius: !isMe ? '4px' : '12px',
-                maxWidth: '70%',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                border: isMe ? 'none' : '1px solid #e2e8f0'
-              }}>
-                {msg.type === 'ORDER_REFERENCE' && (
-                  <div style={{ marginBottom: 8, padding: '6px 10px', background: isMe ? 'rgba(255,255,255,0.2)' : '#f8fafc', borderRadius: 6, fontSize: 13, border: isMe ? '1px solid rgba(255,255,255,0.3)' : '1px solid #e2e8f0' }}>
-                    <strong>Tham chiếu đơn hàng:</strong> #{msg.orderId}
-                  </div>
-                )}
-                {msg.content}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="chat-input-area" style={{ padding: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '12px', background: '#fff', alignItems: 'center' }}>
-        <select
-          value={selectedOrderId}
-          onChange={e => setSelectedOrderId(e.target.value)}
-          disabled={!connected}
-          style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: 13, maxWidth: '150px' }}
-        >
-          <option value="">(Không đính kèm mã đơn)</option>
-          {orders.map(o => (
-            <option key={o.orderId} value={o.orderId}>#{o.orderId} - {o.productName}</option>
-          ))}
-        </select>
-        <input
-          type="text"
-          className="form-input"
-          placeholder="Nhập tin nhắn..."
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          style={{ flex: 1, padding: '12px 16px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-          disabled={!connected}
-        />
-        <button
-          className="btn-primary"
-          onClick={sendMessage}
-          disabled={!connected || !inputMessage.trim()}
-          style={{ padding: '0 24px', borderRadius: '8px', fontWeight: 600 }}
-        >
-          Gửi
-        </button>
-      </div>
+      <ChatInput
+        value={inputMessage}
+        onChange={setInputMessage}
+        onSend={sendMessage}
+        disabled={!connected}
+        placeholder="Nhập tin nhắn..."
+        orders={orders}
+        selectedOrderId={selectedOrderId}
+        onSelectOrderId={setSelectedOrderId}
+      />
     </div>
   );
 }

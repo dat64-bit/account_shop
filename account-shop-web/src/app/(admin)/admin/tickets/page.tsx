@@ -7,16 +7,8 @@ import { useAdminToast } from '@/components/admin/AdminToast';
 import api from '@/lib/axios';
 import { API_BASE_URL } from '@/lib/config';
 
-interface ChatMessage {
-  sender: string;
-  content: string;
-  timestamp: string;
-  type?: string;
-  orderId?: number;
-  accountId?: number;
-  conversationId?: number;
-  targetAccountId?: number;
-}
+import ChatMessages, { ChatMessage } from '@/components/common/ChatMessages';
+import ChatInput from '@/components/common/ChatInput';
 
 interface Conversation {
   conversationId: number;
@@ -256,53 +248,21 @@ export default function AdminChatRoomPage() {
                 <div style={{ fontWeight: 600, fontSize: 16, color: '#0f172a' }}>Đang chat với: {selectedConv.username}</div>
               </div>
 
-              <div ref={messagesContainerRef} className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '24px', background: '#f8fafc' }}>
-                {loadingMessages && <div style={{ textAlign: 'center', color: '#64748b' }}>Đang nạp tin nhắn...</div>}
-                
-                {!loadingMessages && messages.map((msg, idx) => {
-                  const isAdmin = msg.sender.includes('(Admin)');
+              <ChatMessages
+                messages={messages}
+                loading={loadingMessages}
+                isMe={(msg) => msg.role ? msg.role === 'ADMIN' : msg.sender.includes('(Admin)')}
+                getSenderName={(msg) => (msg.role ? msg.role === 'ADMIN' : msg.sender.includes('(Admin)')) ? 'Bạn (Admin)' : (selectedConv?.username || msg.sender)}
+                containerRef={messagesContainerRef}
+              />
 
-                  return (
-                    <div key={idx} className={`chat-bubble ${isAdmin ? 'admin' : 'user'}`} style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px', textAlign: isAdmin ? 'right' : 'left' }}>
-                        {isAdmin ? 'Bạn (Admin)' : selectedConv.username}
-                      </div>
-                      <div className={`bubble-content ${isAdmin ? 'admin-bubble' : 'user-bubble'}`}>
-                        {msg.type === 'ORDER_REFERENCE' && (
-                          <div style={{ marginBottom: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.2)', borderRadius: 6, fontSize: 13, border: isAdmin ? '1px solid rgba(255,255,255,0.3)' : '1px solid #e2e8f0', color: isAdmin ? '#fff' : '#000' }}>
-                            <strong>Tham chiếu đơn hàng:</strong> #{msg.orderId}
-                          </div>
-                        )}
-                        {msg.content}
-                        <div className="bubble-timestamp" style={{ opacity: 0.7, marginTop: 4 }}>
-                          {new Date(parseInt(msg.timestamp)).toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="chat-input-area" style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: '#fff', display: 'flex', gap: 12 }}>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder={`Nhập phản hồi cho ${selectedConv.username}...`}
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                  disabled={!connected}
-                  style={{ flex: 1, padding: '12px 16px', fontSize: 14, borderRadius: 8, border: '1px solid #cbd5e1' }}
-                />
-                <button
-                  className="btn-primary"
-                  onClick={sendMessage}
-                  disabled={!connected || !inputMessage.trim()}
-                  style={{ padding: '0 24px', borderRadius: 8, fontWeight: 600 }}
-                >
-                  Gửi
-                </button>
-              </div>
+              <ChatInput
+                value={inputMessage}
+                onChange={setInputMessage}
+                onSend={sendMessage}
+                disabled={!connected}
+                placeholder={`Nhập phản hồi cho ${selectedConv.username}...`}
+              />
             </>
           )}
         </div>

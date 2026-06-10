@@ -1,0 +1,141 @@
+/* ========================================== */
+/* Ticket Chat UI Styles                      */
+/* ========================================== */
+
+.admin-chat-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  height: 400px;
+}
+
+.chat-messages {
+  overflow-y: auto;
+  padding: 24px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.chat-bubble-container {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.chat-bubble-container.me {
+  align-items: flex-end;
+}
+
+.chat-bubble-container.other {
+  align-items: flex-start;
+}
+
+.chat-sender-name {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+  padding: 0 4px;
+}
+
+.bubble-content {
+  padding: 8px 12px;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  max-width: 70%;
+}
+
+.bubble-content.admin-bubble {
+  background: #2563eb;
+  color: #fff;
+}
+
+.bubble-content.user-bubble {
+  background: #fff;
+  color: #1e293b;
+}
+
+.bubble-timestamp {
+  font-size: 10px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+.chat-order-ref {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.chat-order-ref.me {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+.chat-order-ref.other {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+
+/* Chat Input Area */
+.chat-input-container {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 12px;
+  background: #fff;
+  align-items: center;
+  margin-top: 0;
+}
+
+.chat-input-select {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+  max-width: 180px;
+  outline: none;
+}
+
+.chat-input-field {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  outline: none;
+}
+
+.chat-input-btn {
+  padding: 0 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Resolving Actions */
+.chat-action-bar {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 16px;
+}
+
+.btn-resolve-success {
+  background: #10b981;
+  color: #fff;
+}
+
+.btn-resolve-pending {
+  background: #f59e0b;
+  color: #fff;
+}
+
+.btn-close-chat {
+  color: #ef4444;
+}
